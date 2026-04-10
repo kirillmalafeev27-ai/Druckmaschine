@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ДАВИЛКА</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="menu-screen" class="screen active">
+    <div class="menu-container">
+      <h1 id="game-title">ДАВИЛКА</h1>
+      <p class="subtitle" id="game-subtitle">Немецкий язык под давлением</p>
+
+      <div id="setup-step1" class="setup-step">
+        <div class="menu-options">
+          <div class="option-group name-input-group">
+            <label for="player-name">Имя игрока:</label>
+            <input type="text" id="player-name" placeholder="Введите ваше имя..." maxlength="20">
+          </div>
+        </div>
+        <button id="to-step2-btn" class="btn-primary">ДАЛЕЕ</button>
+        <br>
+        <button id="leaderboard-btn" class="btn-secondary">ТАБЛИЦА ЛИДЕРОВ</button>
+      </div>
+
+      <div id="setup-step2" class="setup-step hidden">
+        <h2 class="step-title">Выберите уровень немецкого</h2>
+        <p class="step-hint">Уровень фиксируется на всю игру. Все упражнения будут этого уровня.</p>
+        <div class="level-buttons">
+          <button class="level-btn" data-level="A1">
+            <span class="level-code">A1</span>
+            <span class="level-desc">Начальный</span>
+          </button>
+          <button class="level-btn" data-level="A2">
+            <span class="level-code">A2</span>
+            <span class="level-desc">Элементарный</span>
+          </button>
+          <button class="level-btn" data-level="B1">
+            <span class="level-code">B1</span>
+            <span class="level-desc">Средний</span>
+          </button>
+          <button class="level-btn" data-level="B2">
+            <span class="level-code">B2</span>
+            <span class="level-desc">Выше среднего</span>
+          </button>
+        </div>
+        <button id="back-to-step1" class="btn-secondary">Назад</button>
+      </div>
+
+      <div id="setup-step3" class="setup-step hidden">
+        <h2 class="step-title">Выберите лексическую тему</h2>
+        <p class="step-hint">Все упражнения будут использовать слова из этой темы.</p>
+        <div id="lexical-grid" class="lexical-grid"></div>
+        <button id="back-to-step2" class="btn-secondary">Назад</button>
+      </div>
+
+      <div id="setup-step4" class="setup-step hidden">
+        <h2 class="step-title">Настройте бонусные слоты</h2>
+        <p class="step-hint">Выберите грамматическую тему, затем кликните на слот. Стартовый экран и логика слотов повторяют Morskoy.</p>
+
+        <div id="bonus-slots" class="bonus-slots">
+          <div class="bonus-slot filled" data-slot="0">
+            <div class="slot-bonus">2 хода</div>
+            <div class="slot-topic">Wortstellung</div>
+            <div class="slot-grammar">+ выберите тему</div>
+          </div>
+          <div class="bonus-slot empty" data-slot="1">
+            <div class="slot-bonus">+1 ход</div>
+            <div class="slot-topic">Пусто</div>
+            <div class="slot-grammar"></div>
+          </div>
+          <div class="bonus-slot empty" data-slot="2">
+            <div class="slot-bonus">Подсказка</div>
+            <div class="slot-topic">Пусто</div>
+            <div class="slot-grammar"></div>
+          </div>
+          <div class="bonus-slot empty" data-slot="3">
+            <div class="slot-bonus">Щит</div>
+            <div class="slot-topic">Пусто</div>
+            <div class="slot-grammar"></div>
+          </div>
+          <div class="bonus-slot empty" data-slot="4">
+            <div class="slot-bonus">Таймер</div>
+            <div class="slot-topic">Пусто</div>
+            <div class="slot-grammar"></div>
+          </div>
+        </div>
+
+        <div class="grammar-picker-label">Грамматические темы:</div>
+        <div id="grammar-picker" class="grammar-picker"></div>
+
+        <div class="step4-buttons">
+          <button id="start-btn" class="btn-primary" disabled>НАЧАТЬ ИГРУ</button>
+          <button id="back-to-step3" class="btn-secondary">Назад</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tutorial-overlay" class="hidden">
+    <div class="tutorial-content">
+      <h2>КАК ИГРАТЬ</h2>
+      <div class="tutorial-step">
+        <span class="step-icon">1.</span>
+        <strong>Выберите слот</strong> с грамматической темой — каждый слот даёт ход и свой бонус.
+      </div>
+      <div class="tutorial-step">
+        <span class="step-icon">2.</span>
+        <strong>Правильный ответ</strong> продвигает вас по комнате.
+      </div>
+      <div class="tutorial-step">
+        <span class="step-icon">3.</span>
+        <strong>Осматривайтесь</strong> мышью, пальцем или клавишами влево/вправо, а ходите по стрелкам/WASD.
+      </div>
+      <div class="tutorial-step">
+        <span class="step-icon">4.</span>
+        Найдите <strong>правильную дверь</strong> из 6 — только одна открывается.
+      </div>
+      <div class="tutorial-step">
+        <span class="step-icon">!</span>
+        <strong>Давилка</strong> падает каждые 15 секунд плюс случайная пауза. Пока думаете над вопросом, время тоже идёт.
+      </div>
+      <div class="tutorial-step">
+        <span class="step-icon">?</span>
+        Безопасны стартовая площадка и тёмные зоны на полу. Если удар застанет вас вне них — конец.
+      </div>
+      <button id="tutorial-close" class="btn-primary">ПОНЯТНО!</button>
+    </div>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <canvas id="game-canvas"></canvas>
+    <div id="death-overlay"></div>
+    <div id="message-banner" class="hidden"></div>
+
+    <div id="hud">
+      <div id="level-display">Уровень <span id="level-num">1</span></div>
+      <div id="safe-indicator" class="safe-indicator hidden">БЕЗОПАСНАЯ ЗОНА</div>
+      <div id="status-effects"></div>
+      <div id="crusher-timer-display" class="hidden">
+        <span id="crusher-timer-value"></span>
+      </div>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <div id="use-door-prompt" class="hidden">
+      <button id="use-door-btn" class="btn-use-door">ОТКРЫТЬ ДВЕРЬ [E]</button>
+    </div>
+
+    <div id="loading-overlay" class="hidden">
+      <div class="loading-spinner"></div>
+      <p id="loading-text">Генерация упражнений...</p>
+    </div>
+
+    <div id="topic-panel" class="hidden">
+      <h3>Выберите тему:</h3>
+      <div id="topic-buttons" class="topic-buttons"></div>
+    </div>
+
+    <div id="question-panel" class="hidden">
+      <div class="question-header">
+        <span id="question-topic-label"></span>
+      </div>
+      <p id="question-text"></p>
+      <div id="question-options"></div>
+      <div id="question-feedback" class="hidden"></div>
+    </div>
+
+    <div id="direction-panel" class="hidden">
+      <p class="direction-prompt">Выберите направление:</p>
+      <div class="direction-buttons">
+        <button class="dir-btn" data-dir="up">&uarr;</button>
+        <button class="dir-btn" data-dir="left">&larr;</button>
+        <button class="dir-btn" data-dir="down">&darr;</button>
+        <button class="dir-btn" data-dir="right">&rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="win-screen" class="screen">
+    <div class="end-container">
+      <h1>УРОВЕНЬ ПРОЙДЕН!</h1>
+      <p id="win-stats"></p>
+      <div class="end-buttons">
+        <button id="win-next" class="btn-primary">СЛЕДУЮЩИЙ УРОВЕНЬ</button>
+        <button id="win-restart" class="btn-secondary">В МЕНЮ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="lose-screen" class="screen">
+    <div class="end-container">
+      <h1 id="lose-title">РАЗДАВЛЕН!</h1>
+      <p id="lose-message">Давилка вас настигла...</p>
+      <p id="lose-stats"></p>
+      <div class="end-buttons">
+        <button id="lose-restart" class="btn-primary">ПОПРОБОВАТЬ СНОВА</button>
+        <button id="lose-menu" class="btn-secondary">В МЕНЮ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="leaderboard-screen" class="screen">
+    <div class="end-container">
+      <h1 style="color: #cc0000; font-size: 2em;">ТАБЛИЦА ЛИДЕРОВ</h1>
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Имя</th>
+            <th>Уровень</th>
+            <th>Точность</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+      <p id="leaderboard-empty" class="hidden" style="color: #666;">Пока нет результатов</p>
+      <button id="leaderboard-back" class="btn-primary">НАЗАД</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <script src="js/audio.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
