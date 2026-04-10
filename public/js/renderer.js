@@ -30,8 +30,8 @@ class CrusherRoomRenderer {
     this.crusherBottomY = 0.85;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x080606);
-    this.scene.fog = new THREE.Fog(0x080606, 10, 38);
+    this.scene.background = new THREE.Color(0x030204);
+    this.scene.fog = new THREE.Fog(0x030204, 4, 22);
 
     this.camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 120);
     this.camera.rotation.order = 'YXZ';
@@ -46,6 +46,7 @@ class CrusherRoomRenderer {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.7;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -115,152 +116,459 @@ class CrusherRoomRenderer {
   }
 
   _createMaterials() {
-    const floorTexture = this._createStoneTexture('#52433a', '#2f241f');
-    const wallTexture = this._createStoneTexture('#665247', '#332720');
-    const crusherTexture = this._createCrusherTexture();
+    const floorCanvas = this._createFloorTexture();
+    const wallCanvas = this._createWallTexture();
+    const doorCanvas = this._createDoorTexture();
+    const crusherCanvas = this._createCrusherCanvas();
+
+    const floorTexture = new THREE.CanvasTexture(floorCanvas);
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(2, 2);
+
+    const floorNormal = this._generateNormalMap(floorCanvas, 1.8);
+    floorNormal.wrapS = THREE.RepeatWrapping;
+    floorNormal.wrapT = THREE.RepeatWrapping;
+    floorNormal.repeat.set(2, 2);
 
     this.floorMaterial = new THREE.MeshStandardMaterial({
       map: floorTexture,
-      color: 0x8a7668,
-      roughness: 0.92,
-      metalness: 0.05
+      normalMap: floorNormal,
+      normalScale: new THREE.Vector2(0.8, 0.8),
+      color: 0x6a5a4e,
+      roughness: 0.95,
+      metalness: 0.02
     });
+
+    const wallTexture = new THREE.CanvasTexture(wallCanvas);
+    wallTexture.wrapS = THREE.RepeatWrapping;
+    wallTexture.wrapT = THREE.RepeatWrapping;
+
+    const wallNormal = this._generateNormalMap(wallCanvas, 2.0);
+    wallNormal.wrapS = THREE.RepeatWrapping;
+    wallNormal.wrapT = THREE.RepeatWrapping;
 
     this.wallMaterial = new THREE.MeshStandardMaterial({
       map: wallTexture,
-      color: 0x6f5d51,
-      roughness: 0.9,
-      metalness: 0.04
+      normalMap: wallNormal,
+      normalScale: new THREE.Vector2(1.0, 1.0),
+      color: 0x5a4a40,
+      roughness: 0.92,
+      metalness: 0.03
     });
 
-    this.safeOverlayMaterial = new THREE.MeshBasicMaterial({
-      color: 0x101010,
-      transparent: true,
-      opacity: 0.58
-    });
+    const doorTexture = new THREE.CanvasTexture(doorCanvas);
+    doorTexture.wrapS = THREE.RepeatWrapping;
+    doorTexture.wrapT = THREE.RepeatWrapping;
 
-    this.startPadMaterial = new THREE.MeshBasicMaterial({
-      color: 0x3d1111,
-      transparent: true,
-      opacity: 0.65
-    });
+    const doorNormal = this._generateNormalMap(doorCanvas, 1.5);
+    doorNormal.wrapS = THREE.RepeatWrapping;
+    doorNormal.wrapT = THREE.RepeatWrapping;
 
     this.doorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4c2d23,
-      roughness: 0.78,
-      metalness: 0.08
+      map: doorTexture,
+      normalMap: doorNormal,
+      normalScale: new THREE.Vector2(0.7, 0.7),
+      color: 0x3a2218,
+      roughness: 0.82,
+      metalness: 0.06
     });
 
     this.frameMaterial = new THREE.MeshStandardMaterial({
-      color: 0x3a2c25,
-      roughness: 0.82,
-      metalness: 0.12
+      color: 0x2a1c15,
+      roughness: 0.85,
+      metalness: 0.15
     });
+
+    const crusherTexture = new THREE.CanvasTexture(crusherCanvas);
+    crusherTexture.wrapS = THREE.RepeatWrapping;
+    crusherTexture.wrapT = THREE.RepeatWrapping;
+    crusherTexture.repeat.set(4, 4);
 
     this.crusherMaterial = new THREE.MeshStandardMaterial({
       map: crusherTexture,
-      color: 0x856961,
-      roughness: 0.88,
-      metalness: 0.08
+      color: 0x6a5548,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+
+    this.safeOverlayMaterial = new THREE.MeshBasicMaterial({
+      color: 0x080808,
+      transparent: true,
+      opacity: 0.62
+    });
+
+    this.startPadMaterial = new THREE.MeshBasicMaterial({
+      color: 0x2a0808,
+      transparent: true,
+      opacity: 0.7
     });
 
     this.propFallbackMaterial = new THREE.MeshStandardMaterial({
-      color: 0x77655c,
-      roughness: 0.8,
-      metalness: 0.06
+      color: 0x5a4a3e,
+      roughness: 0.85,
+      metalness: 0.04
     });
   }
 
-  _createStoneTexture(baseColor, lineColor) {
+  _createFloorTexture() {
+    const size = 512;
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
-    const context = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-    context.fillStyle = baseColor;
-    context.fillRect(0, 0, 128, 128);
-    context.strokeStyle = lineColor;
-    context.lineWidth = 2;
+    ctx.fillStyle = '#1e1814';
+    ctx.fillRect(0, 0, size, size);
 
-    for (let x = 0; x <= 128; x += 32) {
-      context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, 128);
-      context.stroke();
+    const blockW = 128;
+    const blockH = 64;
+    const rows = Math.ceil(size / blockH);
+    const cols = Math.ceil(size / blockW) + 2;
+
+    for (let row = 0; row < rows; row++) {
+      const offset = (row % 2) * (blockW / 2);
+      for (let col = -1; col < cols; col++) {
+        const bx = col * blockW + offset;
+        const by = row * blockH;
+        const pad = 3;
+
+        const r = 42 + Math.floor(Math.random() * 28);
+        const g = 34 + Math.floor(Math.random() * 22);
+        const b = 28 + Math.floor(Math.random() * 16);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(bx + pad, by + pad, blockW - pad * 2, blockH - pad * 2);
+
+        for (let i = 0; i < 60; i++) {
+          const nx = bx + pad + Math.random() * (blockW - pad * 2);
+          const ny = by + pad + Math.random() * (blockH - pad * 2);
+          const shade = Math.floor(Math.random() * 35);
+          ctx.fillStyle = `rgba(${shade},${shade},${shade},0.12)`;
+          ctx.fillRect(nx, ny, 1 + Math.random() * 4, 1 + Math.random() * 4);
+        }
+
+        if (Math.random() > 0.65) {
+          ctx.strokeStyle = `rgba(10,8,6,${(0.25 + Math.random() * 0.25).toFixed(2)})`;
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          let cx = bx + pad + Math.random() * (blockW - pad * 4);
+          let cy = by + pad + Math.random() * (blockH - pad * 4);
+          ctx.moveTo(cx, cy);
+          for (let s = 0; s < 4; s++) {
+            cx += (Math.random() - 0.5) * 24;
+            cy += (Math.random() - 0.5) * 16;
+            ctx.lineTo(cx, cy);
+          }
+          ctx.stroke();
+        }
+
+        if (Math.random() > 0.8) {
+          const sx = bx + blockW / 2 + (Math.random() - 0.5) * blockW * 0.5;
+          const sy = by + blockH / 2 + (Math.random() - 0.5) * blockH * 0.5;
+          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 12 + Math.random() * 18);
+          grad.addColorStop(0, 'rgba(15,10,5,0.2)');
+          grad.addColorStop(1, 'rgba(15,10,5,0)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(bx, by, blockW, blockH);
+        }
+      }
     }
 
-    for (let y = 0; y <= 128; y += 32) {
-      context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(128, y);
-      context.stroke();
+    ctx.strokeStyle = '#0e0b08';
+    ctx.lineWidth = 3;
+    for (let row = 0; row <= rows; row++) {
+      ctx.beginPath();
+      ctx.moveTo(0, row * blockH);
+      ctx.lineTo(size, row * blockH);
+      ctx.stroke();
+    }
+    for (let row = 0; row < rows; row++) {
+      const offset = (row % 2) * (blockW / 2);
+      for (let col = -1; col <= cols; col++) {
+        ctx.beginPath();
+        ctx.moveTo(col * blockW + offset, row * blockH);
+        ctx.lineTo(col * blockW + offset, (row + 1) * blockH);
+        ctx.stroke();
+      }
     }
 
-    for (let index = 0; index < 400; index += 1) {
-      const shade = 20 + Math.random() * 60;
-      context.fillStyle = `rgba(${shade}, ${shade * 0.8}, ${shade * 0.7}, 0.18)`;
-      context.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1);
-    return texture;
+    return canvas;
   }
 
-  _createCrusherTexture() {
+  _createWallTexture() {
+    const size = 512;
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const context = canvas.getContext('2d');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-    context.fillStyle = '#6d5a52';
-    context.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = '#1a1410';
+    ctx.fillRect(0, 0, size, size);
 
-    context.strokeStyle = '#3c2d28';
-    context.lineWidth = 3;
+    const bw = 85;
+    const bh = 42;
+    const rows = Math.ceil(size / bh);
+    const cols = Math.ceil(size / bw) + 2;
 
-    for (let x = 0; x <= 256; x += 32) {
-      context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, 256);
-      context.stroke();
+    for (let row = 0; row < rows; row++) {
+      const offset = (row % 2) * (bw / 2);
+      for (let col = -1; col < cols; col++) {
+        const bx = col * bw + offset;
+        const by = row * bh;
+        const pad = 2;
+
+        const r = 52 + Math.floor(Math.random() * 30);
+        const g = 40 + Math.floor(Math.random() * 24);
+        const b = 32 + Math.floor(Math.random() * 18);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(bx + pad, by + pad, bw - pad * 2, bh - pad * 2);
+
+        for (let i = 0; i < 40; i++) {
+          const nx = bx + pad + Math.random() * (bw - pad * 2);
+          const ny = by + pad + Math.random() * (bh - pad * 2);
+          const shade = Math.floor(Math.random() * 30);
+          ctx.fillStyle = `rgba(${shade},${shade},${shade},0.1)`;
+          ctx.fillRect(nx, ny, 1 + Math.random() * 3, 1 + Math.random() * 3);
+        }
+
+        if (row > rows - 4) {
+          const alpha = ((row - rows + 4) * 0.04).toFixed(3);
+          ctx.fillStyle = `rgba(8,18,6,${alpha})`;
+          ctx.fillRect(bx + pad, by + pad, bw - pad * 2, bh - pad * 2);
+        }
+
+        if (row < 3 && Math.random() > 0.6) {
+          ctx.fillStyle = 'rgba(5,3,2,0.15)';
+          ctx.fillRect(bx + Math.random() * bw * 0.8, by, 3 + Math.random() * 6, bh * (1 + Math.random()));
+        }
+      }
     }
 
-    for (let y = 0; y <= 256; y += 32) {
-      context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(256, y);
-      context.stroke();
+    ctx.strokeStyle = '#0c0908';
+    ctx.lineWidth = 2.5;
+    for (let row = 0; row <= rows; row++) {
+      ctx.beginPath();
+      ctx.moveTo(0, row * bh);
+      ctx.lineTo(size, row * bh);
+      ctx.stroke();
+    }
+    for (let row = 0; row < rows; row++) {
+      const offset = (row % 2) * (bw / 2);
+      for (let col = -1; col <= cols; col++) {
+        ctx.beginPath();
+        ctx.moveTo(col * bw + offset, row * bh);
+        ctx.lineTo(col * bw + offset, (row + 1) * bh);
+        ctx.stroke();
+      }
     }
 
-    for (let index = 0; index < 18; index += 1) {
-      context.fillStyle = `rgba(120, 10, 10, ${0.18 + Math.random() * 0.18})`;
-      const radius = 10 + Math.random() * 26;
-      context.beginPath();
-      context.arc(Math.random() * 256, Math.random() * 256, radius, 0, Math.PI * 2);
-      context.fill();
+    return canvas;
+  }
+
+  _createDoorTexture() {
+    const w = 256;
+    const h = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#2a1a10';
+    ctx.fillRect(0, 0, w, h);
+
+    for (let x = 0; x < w; x++) {
+      const intensity = 30 + Math.sin(x * 0.3) * 8 + Math.sin(x * 1.1) * 4;
+      ctx.strokeStyle = `rgba(${intensity + 15},${intensity + 5},${intensity},0.3)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      for (let y = 0; y < h; y += 4) {
+        ctx.lineTo(x + Math.sin(y * 0.02 + x * 0.1) * 1.5, y);
+      }
+      ctx.stroke();
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(4, 4);
+    const plankWidth = Math.floor(w / 3);
+    ctx.strokeStyle = '#151008';
+    ctx.lineWidth = 3;
+    for (let i = 1; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * plankWidth, 0);
+      ctx.lineTo(i * plankWidth, h);
+      ctx.stroke();
+    }
+
+    const bandPositions = [h * 0.15, h * 0.5, h * 0.85];
+    bandPositions.forEach((by) => {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, by - 8, w, 16);
+      for (let i = 0; i < 3; i++) {
+        const rx = plankWidth * i + plankWidth / 2;
+        ctx.fillStyle = '#2a2a28';
+        ctx.beginPath();
+        ctx.arc(rx, by, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#353530';
+        ctx.beginPath();
+        ctx.arc(rx - 1, by - 1, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    for (let i = 0; i < 200; i++) {
+      ctx.fillStyle = `rgba(0,0,0,${(0.05 + Math.random() * 0.1).toFixed(2)})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3);
+    }
+
+    for (let k = 0; k < 3; k++) {
+      if (Math.random() > 0.4) {
+        const kx = Math.random() * w;
+        const ky = Math.random() * h;
+        const grad = ctx.createRadialGradient(kx, ky, 0, kx, ky, 6 + Math.random() * 8);
+        grad.addColorStop(0, 'rgba(15,8,4,0.6)');
+        grad.addColorStop(0.5, 'rgba(25,15,8,0.3)');
+        grad.addColorStop(1, 'rgba(25,15,8,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(kx, ky, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    return canvas;
+  }
+
+  _createCrusherCanvas() {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#4a3830';
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.strokeStyle = '#2a1c18';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= size; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, size);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= size; y += 32) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(size, y);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 25; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = 8 + Math.random() * 22;
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, `rgba(120,8,8,${(0.2 + Math.random() * 0.25).toFixed(2)})`);
+      grad.addColorStop(0.6, `rgba(80,4,4,${(0.1 + Math.random() * 0.1).toFixed(2)})`);
+      grad.addColorStop(1, 'rgba(80,4,4,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size * 0.5;
+      ctx.strokeStyle = `rgba(100,6,6,${(0.15 + Math.random() * 0.15).toFixed(2)})`;
+      ctx.lineWidth = 1 + Math.random() * 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (Math.random() - 0.5) * 8, y + 20 + Math.random() * 40);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 8; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      ctx.strokeStyle = `rgba(20,15,10,${(0.3 + Math.random() * 0.3).toFixed(2)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 500; i++) {
+      const shade = Math.floor(20 + Math.random() * 40);
+      ctx.fillStyle = `rgba(${shade},${Math.floor(shade * 0.7)},${Math.floor(shade * 0.6)},0.12)`;
+      ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+    }
+
+    return canvas;
+  }
+
+  _generateNormalMap(sourceCanvas, strength) {
+    const w = sourceCanvas.width;
+    const h = sourceCanvas.height;
+    const srcCtx = sourceCanvas.getContext('2d');
+    const srcData = srcCtx.getImageData(0, 0, w, h).data;
+
+    const normalCanvas = document.createElement('canvas');
+    normalCanvas.width = w;
+    normalCanvas.height = h;
+    const nCtx = normalCanvas.getContext('2d');
+    const normalImg = nCtx.createImageData(w, h);
+
+    const getHeight = (x, y) => {
+      x = ((x % w) + w) % w;
+      y = ((y % h) + h) % h;
+      const i = (y * w + x) * 4;
+      return (srcData[i] + srcData[i + 1] + srcData[i + 2]) / (3 * 255);
+    };
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const left = getHeight(x - 1, y);
+        const right = getHeight(x + 1, y);
+        const up = getHeight(x, y - 1);
+        const down = getHeight(x, y + 1);
+
+        const dx = (left - right) * strength;
+        const dy = (up - down) * strength;
+        const len = Math.sqrt(dx * dx + dy * dy + 1);
+
+        const i = (y * w + x) * 4;
+        normalImg.data[i] = Math.floor((dx / len * 0.5 + 0.5) * 255);
+        normalImg.data[i + 1] = Math.floor((dy / len * 0.5 + 0.5) * 255);
+        normalImg.data[i + 2] = Math.floor((1 / len * 0.5 + 0.5) * 255);
+        normalImg.data[i + 3] = 255;
+      }
+    }
+
+    nCtx.putImageData(normalImg, 0, 0);
+    const texture = new THREE.CanvasTexture(normalCanvas);
     return texture;
   }
 
   _setupLights() {
-    const ambient = new THREE.AmbientLight(0x4a3630, 0.48);
-    const hemi = new THREE.HemisphereLight(0x806d64, 0x170f0d, 0.62);
-    const directional = new THREE.DirectionalLight(0xf5d3b2, 0.5);
+    const ambient = new THREE.AmbientLight(0x1a1520, 0.22);
+    const hemi = new THREE.HemisphereLight(0x2a2040, 0x0a0508, 0.3);
+
+    const directional = new THREE.DirectionalLight(0x6070a5, 0.25);
     directional.position.set(8, 18, 10);
     directional.castShadow = true;
-    directional.shadow.mapSize.width = 1024;
-    directional.shadow.mapSize.height = 1024;
+    directional.shadow.mapSize.width = 2048;
+    directional.shadow.mapSize.height = 2048;
+    directional.shadow.camera.near = 0.5;
+    directional.shadow.camera.far = 50;
+    directional.shadow.bias = -0.001;
 
-    this.cameraLamp = new THREE.PointLight(0xffe6c7, 0.9, 14, 2);
-    this.cameraLamp.position.set(0, 0.1, 0);
+    this.cameraLamp = new THREE.PointLight(0xff9955, 0.55, 10, 2);
+    this.cameraLamp.position.set(0, -0.1, 0);
+    this.cameraLamp.castShadow = true;
+    this.cameraLamp.shadow.mapSize.width = 512;
+    this.cameraLamp.shadow.mapSize.height = 512;
     this.camera.add(this.cameraLamp);
 
     this.scene.add(ambient, hemi, directional);
@@ -510,7 +818,6 @@ class CrusherRoomRenderer {
 
       const frameX = door.side === 'left' ? westX - 0.02 : eastX + 0.02;
       frame.position.set(frameX, 0, z);
-      frame.rotation.y = door.side === 'left' ? Math.PI / 2 : -Math.PI / 2;
 
       leftJamb.position.set(0, jambHeight / 2, -doorWidth / 2);
       rightJamb.position.set(0, jambHeight / 2, doorWidth / 2);
@@ -570,10 +877,13 @@ class CrusherRoomRenderer {
     decoration.rotation.y = side === 'left' ? -Math.PI / 2 : Math.PI / 2;
     this.rootGroup.add(decoration);
 
-    const light = new THREE.PointLight(0xff9955, 0.48, 7, 2);
+    const light = new THREE.PointLight(0xff7733, 0.65, 9, 2);
     light.position.set(side === 'left' ? -this.roomHalf + 0.85 : this.roomHalf - 0.85, 2.1, z);
+    light.castShadow = true;
+    light.shadow.mapSize.width = 256;
+    light.shadow.mapSize.height = 256;
     this.scene.add(light);
-    this.torchLights.push({ light, offset: Math.random() * Math.PI * 2 });
+    this.torchLights.push({ light, base: 0.55, offset: Math.random() * Math.PI * 2 });
   }
 
   _createDecor() {
@@ -634,7 +944,7 @@ class CrusherRoomRenderer {
     this.crusherGroup.position.y = this.crusherTopY;
     this.rootGroup.add(this.crusherGroup);
 
-    this.crusherLight = new THREE.PointLight(0xff3311, 0, 28, 2);
+    this.crusherLight = new THREE.PointLight(0xff2200, 0, 30, 1.8);
     this.crusherLight.position.set(0, this.crusherTopY - 0.4, 0);
     this.scene.add(this.crusherLight);
   }
@@ -806,7 +1116,11 @@ class CrusherRoomRenderer {
     });
 
     this.torchLights.forEach((item) => {
-      item.light.intensity = 0.38 + Math.sin(this.clock.elapsedTime * 7 + item.offset) * 0.08;
+      const t = this.clock.elapsedTime;
+      const flicker = Math.sin(t * 7 + item.offset) * 0.12
+        + Math.sin(t * 13.7 + item.offset * 2.3) * 0.08
+        + Math.sin(t * 23.1 + item.offset * 0.7) * 0.04;
+      item.light.intensity = item.base + flicker;
     });
 
     this.doors.forEach((door, index) => {
