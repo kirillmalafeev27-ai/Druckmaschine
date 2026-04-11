@@ -32,8 +32,8 @@ class CrusherRoomRenderer {
     this.ceilingY = this.crusherTopY - 0.34;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x030204);
-    this.scene.fog = new THREE.Fog(0x030204, 4, 22);
+    this.scene.background = new THREE.Color(0x0a0812);
+    this.scene.fog = new THREE.Fog(0x0a0812, 6, 26);
 
     this.camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 120);
     this.camera.rotation.order = 'YXZ';
@@ -194,16 +194,30 @@ class CrusherRoomRenderer {
       metalness: 0.1
     });
 
+    const safeCanvas = this._createSafeZoneTexture(false);
+    const safeTexture = new THREE.CanvasTexture(safeCanvas);
+    safeTexture.wrapS = THREE.ClampToEdgeWrapping;
+    safeTexture.wrapT = THREE.ClampToEdgeWrapping;
+
     this.safeOverlayMaterial = new THREE.MeshBasicMaterial({
-      color: 0x080808,
+      map: safeTexture,
+      color: 0xffffff,
       transparent: true,
-      opacity: 0.62
+      opacity: 0.78,
+      depthWrite: false
     });
 
+    const startCanvas = this._createSafeZoneTexture(true);
+    const startTexture = new THREE.CanvasTexture(startCanvas);
+    startTexture.wrapS = THREE.ClampToEdgeWrapping;
+    startTexture.wrapT = THREE.ClampToEdgeWrapping;
+
     this.startPadMaterial = new THREE.MeshBasicMaterial({
-      color: 0x2a0808,
+      map: startTexture,
+      color: 0xffffff,
       transparent: true,
-      opacity: 0.7
+      opacity: 0.82,
+      depthWrite: false
     });
 
     this.propFallbackMaterial = new THREE.MeshStandardMaterial({
@@ -440,6 +454,103 @@ class CrusherRoomRenderer {
     return canvas;
   }
 
+  _createSafeZoneTexture(isStart) {
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Transparent background
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const outerRadius = size * 0.46;
+
+    // Subtle darkened stone patch (worn rune ring)
+    const baseColor = isStart ? [60, 18, 14] : [12, 10, 16];
+    const [br, bg, bb] = baseColor;
+
+    const ringGrad = ctx.createRadialGradient(cx, cy, outerRadius * 0.25, cx, cy, outerRadius);
+    ringGrad.addColorStop(0, `rgba(${br},${bg},${bb},0.05)`);
+    ringGrad.addColorStop(0.55, `rgba(${br},${bg},${bb},0.55)`);
+    ringGrad.addColorStop(0.82, `rgba(${br},${bg},${bb},0.78)`);
+    ringGrad.addColorStop(1, `rgba(${br},${bg},${bb},0)`);
+    ctx.fillStyle = ringGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outer carved ring line
+    const ringColor = isStart ? 'rgba(160,40,20,0.55)' : 'rgba(120,130,170,0.40)';
+    ctx.strokeStyle = ringColor;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerRadius * 0.86, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner ring
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerRadius * 0.74, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Runic tick marks around the ring
+    const tickCount = 12;
+    const tickColor = isStart ? 'rgba(180,60,30,0.5)' : 'rgba(140,150,180,0.45)';
+    ctx.strokeStyle = tickColor;
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < tickCount; i += 1) {
+      const angle = (i / tickCount) * Math.PI * 2;
+      const r1 = outerRadius * 0.76;
+      const r2 = outerRadius * 0.84;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+      ctx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
+      ctx.stroke();
+    }
+
+    // Central glyph: 4-pointed compass-like mark for normal, different for start
+    ctx.strokeStyle = isStart ? 'rgba(200,70,35,0.6)' : 'rgba(140,155,190,0.50)';
+    ctx.lineWidth = 1.8;
+    const glyphR = outerRadius * 0.38;
+    if (isStart) {
+      // Star burst
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (i / 8) * Math.PI * 2;
+        const inner = glyphR * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+        ctx.lineTo(cx + Math.cos(angle) * glyphR, cy + Math.sin(angle) * glyphR);
+        ctx.stroke();
+      }
+    } else {
+      // Simple cross
+      ctx.beginPath();
+      ctx.moveTo(cx - glyphR, cy);
+      ctx.lineTo(cx + glyphR, cy);
+      ctx.moveTo(cx, cy - glyphR);
+      ctx.lineTo(cx, cy + glyphR);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, glyphR * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Speckle/wear noise
+    for (let i = 0; i < 80; i += 1) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * outerRadius * 0.9;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      ctx.fillStyle = `rgba(0,0,0,${(0.08 + Math.random() * 0.12).toFixed(2)})`;
+      ctx.fillRect(px, py, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+
+    return canvas;
+  }
+
   _createCrusherCanvas() {
     const size = 256;
     const canvas = document.createElement('canvas');
@@ -554,10 +665,10 @@ class CrusherRoomRenderer {
   }
 
   _setupLights() {
-    const ambient = new THREE.AmbientLight(0x1a1520, 0.22);
-    const hemi = new THREE.HemisphereLight(0x2a2040, 0x0a0508, 0.3);
+    const ambient = new THREE.AmbientLight(0x2a2430, 0.45);
+    const hemi = new THREE.HemisphereLight(0x3a3050, 0x1a1008, 0.55);
 
-    const directional = new THREE.DirectionalLight(0x6070a5, 0.25);
+    const directional = new THREE.DirectionalLight(0x7080b0, 0.42);
     directional.position.set(8, 18, 10);
     directional.castShadow = true;
     directional.shadow.mapSize.width = 2048;
@@ -566,14 +677,21 @@ class CrusherRoomRenderer {
     directional.shadow.camera.far = 50;
     directional.shadow.bias = -0.001;
 
-    this.cameraLamp = new THREE.PointLight(0xff9955, 0.55, 10, 2);
-    this.cameraLamp.position.set(0, -0.1, 0);
+    // Player-carried lamp: warm, narrow, bright where the player looks
+    this.cameraLamp = new THREE.PointLight(0xffb070, 0.85, 12, 2);
+    this.cameraLamp.position.set(0, -0.05, 0.1);
     this.cameraLamp.castShadow = true;
     this.cameraLamp.shadow.mapSize.width = 512;
     this.cameraLamp.shadow.mapSize.height = 512;
     this.camera.add(this.cameraLamp);
 
+    // Subtle aura around the player — "a little" glow
+    this.playerAura = new THREE.PointLight(0xffc888, 0.22, 3.2, 2);
+    this.playerAura.position.set(0, -0.4, 0);
+    this.camera.add(this.playerAura);
+
     this.scene.add(ambient, hemi, directional);
+    this.renderer.toneMappingExposure = 0.95;
   }
 
   _bindControls() {
@@ -645,7 +763,7 @@ class CrusherRoomRenderer {
     this._createEntrance();
     this._createDoors(levelData);
     this._createDecor(levelData);
-    this._createCrusher();
+    this._createCrusher(levelData);
 
     this.currentActiveDoorId = null;
     this.currentHintDoorId = null;
@@ -731,27 +849,48 @@ class CrusherRoomRenderer {
     const westX = -this.roomHalf;
     const eastX = this.roomHalf;
     const entranceColumns = new Set([3, 4]);
-    const doorRows = new Set(levelData.doors.map((door) => door.row));
     const doorJambHeight = 3.1;
+    const aboveHeight = this.ceilingY - doorJambHeight;
+    const aboveCenterY = doorJambHeight + aboveHeight / 2;
+
+    const northDoorCols = new Set();
+    const westDoorRows = new Set();
+    const eastDoorRows = new Set();
+    for (const door of levelData.doors) {
+      if (door.side === 'north') {
+        northDoorCols.add(door.col);
+      } else if (door.side === 'west') {
+        westDoorRows.add(door.row);
+      } else if (door.side === 'east') {
+        eastDoorRows.add(door.row);
+      }
+    }
 
     for (let column = 0; column < this.gridSize; column += 1) {
       const x = this.cellToWorld(column, 0).x;
-      this._addWallSegment(x, northZ, 0, wallThickness, 'wallA');
+      if (northDoorCols.has(column)) {
+        this._addAboveDoorSegment(x, northZ, 0, wallThickness, aboveHeight, aboveCenterY);
+      } else {
+        this._addWallSegment(x, northZ, 0, wallThickness, column % 2 === 0 ? 'wallA' : 'wallB');
+      }
       if (!entranceColumns.has(column)) {
-        this._addWallSegment(x, southZ, 0, wallThickness, 'wallB');
+        this._addWallSegment(x, southZ, 0, wallThickness, column % 2 === 0 ? 'wallB' : 'wallA');
       }
     }
 
     for (let row = 0; row < this.gridSize; row += 1) {
       const z = this.cellToWorld(0, row).z;
-      if (!doorRows.has(row)) {
-        this._addWallSegment(westX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallA' : 'wallB');
-        this._addWallSegment(eastX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallB' : 'wallA');
+
+      if (westDoorRows.has(row)) {
+        this._addAboveDoorSegment(westX, z, Math.PI / 2, wallThickness, aboveHeight, aboveCenterY);
       } else {
-        const aboveHeight = this.ceilingY - doorJambHeight;
-        const centerY = doorJambHeight + aboveHeight / 2;
-        this._addAboveDoorSegment(westX, z, Math.PI / 2, wallThickness, aboveHeight, centerY);
-        this._addAboveDoorSegment(eastX, z, Math.PI / 2, wallThickness, aboveHeight, centerY);
+        this._addWallSegment(westX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallA' : 'wallB');
+      }
+
+      if (eastDoorRows.has(row)) {
+        this._addAboveDoorSegment(eastX, z, Math.PI / 2, wallThickness, aboveHeight, aboveCenterY);
+      } else {
+        this._addWallSegment(eastX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallB' : 'wallA');
       }
     }
 
@@ -868,63 +1007,192 @@ class CrusherRoomRenderer {
   _createDoors(levelData) {
     const westX = -this.roomHalf;
     const eastX = this.roomHalf;
+    const northZ = -this.roomHalf;
+    const jambHeight = 3.1;
+    const doorWidth = this.cellSize * 0.92;
+    const panelHeight = 2.7;
+    const panelThickness = 0.16;
+    const panelWidth = doorWidth - 0.08;
+
+    if (!this.ironMaterial) {
+      this.ironMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2a2420,
+        roughness: 0.42,
+        metalness: 0.85
+      });
+      this.knobMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8a6f35,
+        roughness: 0.3,
+        metalness: 0.9,
+        emissive: 0x1a0f05,
+        emissiveIntensity: 0.18
+      });
+    }
 
     levelData.doors.forEach((door) => {
-      const z = this.cellToWorld(0, door.row).z;
+      let frameWorldX;
+      let frameWorldZ;
+      let frameRotationY;
+      let markerX;
+      let markerZ;
+
+      if (door.side === 'west') {
+        const cell = this.cellToWorld(0, door.row);
+        frameWorldX = westX;
+        frameWorldZ = cell.z;
+        frameRotationY = 0;
+        markerX = westX + 0.4;
+        markerZ = cell.z;
+      } else if (door.side === 'east') {
+        const cell = this.cellToWorld(this.gridSize - 1, door.row);
+        frameWorldX = eastX;
+        frameWorldZ = cell.z;
+        frameRotationY = Math.PI;
+        markerX = eastX - 0.4;
+        markerZ = cell.z;
+      } else {
+        const cell = this.cellToWorld(door.col, 0);
+        frameWorldX = cell.x;
+        frameWorldZ = northZ;
+        frameRotationY = -Math.PI / 2;
+        markerX = cell.x;
+        markerZ = northZ + 0.4;
+      }
+
       const frame = new THREE.Group();
-      const jambHeight = 3.1;
-      const doorWidth = this.cellSize * 0.86;
-
-      const leftJamb = new THREE.Mesh(new THREE.BoxGeometry(0.22, jambHeight, 0.22), this.frameMaterial);
-      const rightJamb = new THREE.Mesh(new THREE.BoxGeometry(0.22, jambHeight, 0.22), this.frameMaterial);
-      const lintel = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, doorWidth + 0.3), this.frameMaterial);
-
-      const frameX = door.side === 'left' ? westX - 0.02 : eastX + 0.02;
-      frame.position.set(frameX, 0, z);
-
-      leftJamb.position.set(0, jambHeight / 2, -doorWidth / 2);
-      rightJamb.position.set(0, jambHeight / 2, doorWidth / 2);
-      lintel.position.set(0, jambHeight - 0.1, 0);
-
-      frame.add(leftJamb, rightJamb, lintel);
+      frame.position.set(frameWorldX, 0, frameWorldZ);
+      frame.rotation.y = frameRotationY;
       this.rootGroup.add(frame);
 
-      const marker = new THREE.Mesh(
-        new THREE.PlaneGeometry(this.cellSize * 0.82, this.cellSize * 0.22),
-        new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0 })
+      const leftJamb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26, jambHeight, 0.26),
+        this.frameMaterial
       );
-      marker.rotation.x = -Math.PI / 2;
-      marker.position.set(
-        door.side === 'left' ? westX + 0.38 : eastX - 0.38,
-        0.08,
-        z
-      );
-      this.rootGroup.add(marker);
+      leftJamb.position.set(0, jambHeight / 2, -doorWidth / 2);
+      leftJamb.castShadow = true;
+      leftJamb.receiveShadow = true;
+      frame.add(leftJamb);
 
+      const rightJamb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26, jambHeight, 0.26),
+        this.frameMaterial
+      );
+      rightJamb.position.set(0, jambHeight / 2, doorWidth / 2);
+      rightJamb.castShadow = true;
+      rightJamb.receiveShadow = true;
+      frame.add(rightJamb);
+
+      const lintel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.34, doorWidth + 0.4),
+        this.frameMaterial
+      );
+      lintel.position.set(0, jambHeight - 0.12, 0);
+      lintel.castShadow = true;
+      frame.add(lintel);
+
+      const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.08, doorWidth + 0.32),
+        this.frameMaterial
+      );
+      sill.position.set(0, 0.04, 0);
+      frame.add(sill);
+
+      // Pivot is inside the frame, at the hinge edge
       const pivot = new THREE.Group();
-      pivot.position.set(frameX, 0, z - doorWidth / 2);
-      const panel = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.65, doorWidth), this.doorMaterial.clone());
-      panel.position.set(0, 1.32, doorWidth / 2);
+      pivot.position.set(0, 0, -doorWidth / 2 + 0.05);
+      frame.add(pivot);
+
+      const panelMaterial = this.doorMaterial.clone();
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(panelThickness, panelHeight, panelWidth),
+        panelMaterial
+      );
+      panel.position.set(0, panelHeight / 2 + 0.05, panelWidth / 2);
       panel.castShadow = true;
       panel.receiveShadow = true;
       pivot.add(panel);
-      this.rootGroup.add(pivot);
 
-      this._placeWallDecoration('torchWall', door.side, z - 0.85);
-      this._placeWallDecoration('torchWall', door.side, z + 0.85);
+      // Iron horizontal bands with rivets
+      const bandOffsets = [0.4, 1.1, 1.85, 2.55];
+      for (const by of bandOffsets) {
+        const band = new THREE.Mesh(
+          new THREE.BoxGeometry(panelThickness + 0.06, 0.09, panelWidth + 0.02),
+          this.ironMaterial
+        );
+        band.position.set(0, by + 0.05, panelWidth / 2);
+        band.castShadow = true;
+        pivot.add(band);
+
+        const rivetOffsets = [panelWidth * 0.12, panelWidth * 0.38, panelWidth * 0.62, panelWidth * 0.88];
+        for (const rzFrac of rivetOffsets) {
+          const rivet = new THREE.Mesh(
+            new THREE.SphereGeometry(0.035, 8, 6),
+            this.ironMaterial
+          );
+          rivet.position.set(
+            panelThickness / 2 + 0.015,
+            by + 0.05,
+            rzFrac
+          );
+          pivot.add(rivet);
+        }
+      }
+
+      // Hinges near the pivot edge
+      for (const hy of [0.55, 2.3]) {
+        const hinge = new THREE.Mesh(
+          new THREE.BoxGeometry(panelThickness + 0.08, 0.18, 0.24),
+          this.ironMaterial
+        );
+        hinge.position.set(0, hy + 0.05, 0.16);
+        hinge.castShadow = true;
+        pivot.add(hinge);
+      }
+
+      // Lock plate and knob on the far edge
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.32, 0.22),
+        this.ironMaterial
+      );
+      plate.position.set(panelThickness / 2 + 0.02, 1.32, panelWidth - 0.2);
+      pivot.add(plate);
+
+      const knob = new THREE.Mesh(
+        new THREE.SphereGeometry(0.085, 14, 10),
+        this.knobMaterial
+      );
+      knob.position.set(panelThickness / 2 + 0.12, 1.34, panelWidth - 0.2);
+      knob.castShadow = true;
+      pivot.add(knob);
+
+      // Compute door center in world space for interactive dot check
+      const centerLocal = new THREE.Vector3(0.12, 1.32, 0);
+      const centerWorld = centerLocal.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), frameRotationY);
+      centerWorld.x += frameWorldX;
+      centerWorld.z += frameWorldZ;
+      centerWorld.y = 1.3;
+
+      const marker = new THREE.Mesh(
+        new THREE.PlaneGeometry(this.cellSize * 0.8, this.cellSize * 0.22),
+        new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0 })
+      );
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.set(markerX, 0.08, markerZ);
+      this.rootGroup.add(marker);
 
       this.doors.push({
         id: door.id,
         side: door.side,
         row: door.row,
+        col: door.col,
         approach: door.approach,
-        center: new THREE.Vector3(frameX, 1.3, z),
+        center: centerWorld,
         marker,
         pivot,
         panel,
         openAmount: 0,
         targetOpen: 0,
-        openAngle: door.side === 'left' ? -Math.PI * 0.62 : Math.PI * 0.62,
+        openAngle: -Math.PI * 0.62,
         flashUntil: 0
       });
     });
@@ -949,7 +1217,7 @@ class CrusherRoomRenderer {
     this.torchLights.push({ light, base: 0.55, offset: Math.random() * Math.PI * 2 });
   }
 
-  _createDecor() {
+  _createDecor(levelData) {
     this._placeProp('pillar', 0, 0, { offsetX: 0.48, offsetZ: 0.48, footprint: 0.65, maxHeight: 2.7 });
     this._placeProp('pillar', 7, 0, { offsetX: -0.48, offsetZ: 0.48, footprint: 0.65, maxHeight: 2.7 });
     this._placeProp('pillar', 0, 7, { offsetX: 0.48, offsetZ: -0.48, footprint: 0.65, maxHeight: 2.7 });
@@ -962,12 +1230,94 @@ class CrusherRoomRenderer {
     this._placeProp('bone', 6, 1, { offsetX: 0.35, offsetZ: -0.28, footprint: 0.4, maxHeight: 0.24 });
     this._placeProp('crystal', 4, 0, { offsetX: 0, offsetZ: 0.42, footprint: 0.54, maxHeight: 0.95 });
 
-    const candlestick = this._cloneAsset('candlestick', 0.75, 1.65);
-    if (candlestick) {
-      candlestick.position.set(0, 1.4, -this.roomHalf + 0.12);
-      candlestick.rotation.y = Math.PI;
-      this.rootGroup.add(candlestick);
+    this._placeRandomTorches(levelData);
+  }
+
+  _placeRandomTorches(levelData) {
+    const doorSet = {
+      north: new Set(),
+      west: new Set(),
+      east: new Set()
+    };
+    (levelData.doors || []).forEach((door) => {
+      if (doorSet[door.side]) {
+        doorSet[door.side].add(door.side === 'north' ? door.col : door.row);
+      }
+    });
+
+    const candidates = [];
+    for (let col = 0; col < this.gridSize; col += 1) {
+      if (!doorSet.north.has(col)) {
+        candidates.push({ side: 'north', index: col });
+      }
     }
+    for (let row = 0; row < this.gridSize; row += 1) {
+      if (!doorSet.west.has(row)) {
+        candidates.push({ side: 'west', index: row });
+      }
+      if (!doorSet.east.has(row)) {
+        candidates.push({ side: 'east', index: row });
+      }
+    }
+
+    for (let i = candidates.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    const torchCount = Math.min(6, candidates.length);
+    const chosen = [];
+    for (const cand of candidates) {
+      if (chosen.length >= torchCount) break;
+      // Enforce minimum spacing on the same wall
+      const conflict = chosen.some((o) => o.side === cand.side && Math.abs(o.index - cand.index) < 2);
+      if (conflict) continue;
+      chosen.push(cand);
+    }
+
+    chosen.forEach((spot, idx) => this._placeTorch(spot, idx));
+  }
+
+  _placeTorch(spot, idx) {
+    let world;
+    let rotationY;
+    let lightOffsetX = 0;
+    let lightOffsetZ = 0;
+    const inset = 0.22;
+
+    if (spot.side === 'north') {
+      world = this.cellToWorld(spot.index, 0);
+      world.z = -this.roomHalf + inset;
+      rotationY = 0;
+      lightOffsetZ = 0.65;
+    } else if (spot.side === 'west') {
+      world = this.cellToWorld(0, spot.index);
+      world.x = -this.roomHalf + inset;
+      rotationY = Math.PI / 2;
+      lightOffsetX = 0.65;
+    } else {
+      world = this.cellToWorld(this.gridSize - 1, spot.index);
+      world.x = this.roomHalf - inset;
+      rotationY = -Math.PI / 2;
+      lightOffsetX = -0.65;
+    }
+
+    const torch = this._cloneAsset('torchWall', 0.55, 1.7) || this._cloneAsset('torch', 0.55, 1.7);
+    if (torch) {
+      torch.position.set(world.x, 1.55, world.z);
+      torch.rotation.y = rotationY;
+      this.rootGroup.add(torch);
+    }
+
+    const light = new THREE.PointLight(0xff8a3a, 0.85, 11, 2);
+    light.position.set(world.x + lightOffsetX, 2.3, world.z + lightOffsetZ);
+    light.castShadow = false;
+    this.scene.add(light);
+    this.torchLights.push({
+      light,
+      base: 0.82,
+      offset: idx * 1.31 + Math.random() * Math.PI * 2
+    });
   }
 
   _placeProp(assetKey, x, y, options = {}) {
@@ -986,22 +1336,110 @@ class CrusherRoomRenderer {
     this.rootGroup.add(prop);
   }
 
-  _createCrusher() {
+  _createCrusher(levelData) {
     this.crusherGroup = new THREE.Group();
-    const slab = new THREE.Mesh(
-      new THREE.BoxGeometry(this.gridSize * this.cellSize + 0.2, 0.68, this.gridSize * this.cellSize + 0.2),
-      this.crusherMaterial
-    );
-    slab.castShadow = true;
-    slab.receiveShadow = true;
-    this.crusherGroup.add(slab);
 
+    const safeKeys = new Set();
+    const allSafe = [...(levelData.safeTiles || []), ...(levelData.startSafeTiles || [])];
+    allSafe.forEach((tile) => safeKeys.add(`${tile.x}:${tile.y}`));
+
+    const slabThickness = 0.68;
+    const halfSlab = slabThickness / 2;
+    const cellSize = this.cellSize;
+    const recessCapThickness = 0.22;
+    const recessHeight = 2.0;
+    const recessWallThickness = 0.12;
+    const capBottomLocalY = -halfSlab + recessHeight;
+    const capCenterLocalY = capBottomLocalY + recessCapThickness / 2;
+    const wallCenterLocalY = (-halfSlab + capBottomLocalY) / 2;
+    const wallHeightLocal = capBottomLocalY - (-halfSlab);
+
+    for (let row = 0; row < this.gridSize; row += 1) {
+      for (let col = 0; col < this.gridSize; col += 1) {
+        const world = this.cellToWorld(col, row);
+        const key = `${col}:${row}`;
+
+        if (safeKeys.has(key)) {
+          const neighborSafe = (nc, nr) => safeKeys.has(`${nc}:${nr}`);
+
+          // North wall of recess (-Z)
+          if (!neighborSafe(col, row - 1)) {
+            const n = new THREE.Mesh(
+              new THREE.BoxGeometry(cellSize + 0.02, wallHeightLocal, recessWallThickness),
+              this.crusherMaterial
+            );
+            n.position.set(world.x, wallCenterLocalY, world.z - cellSize / 2 + recessWallThickness / 2);
+            n.castShadow = true;
+            n.receiveShadow = true;
+            this.crusherGroup.add(n);
+          }
+
+          // South wall of recess (+Z)
+          if (!neighborSafe(col, row + 1)) {
+            const s = new THREE.Mesh(
+              new THREE.BoxGeometry(cellSize + 0.02, wallHeightLocal, recessWallThickness),
+              this.crusherMaterial
+            );
+            s.position.set(world.x, wallCenterLocalY, world.z + cellSize / 2 - recessWallThickness / 2);
+            s.castShadow = true;
+            s.receiveShadow = true;
+            this.crusherGroup.add(s);
+          }
+
+          // West wall of recess (-X)
+          if (!neighborSafe(col - 1, row)) {
+            const w = new THREE.Mesh(
+              new THREE.BoxGeometry(recessWallThickness, wallHeightLocal, cellSize - recessWallThickness * 2 + 0.02),
+              this.crusherMaterial
+            );
+            w.position.set(world.x - cellSize / 2 + recessWallThickness / 2, wallCenterLocalY, world.z);
+            w.castShadow = true;
+            w.receiveShadow = true;
+            this.crusherGroup.add(w);
+          }
+
+          // East wall of recess (+X)
+          if (!neighborSafe(col + 1, row)) {
+            const e = new THREE.Mesh(
+              new THREE.BoxGeometry(recessWallThickness, wallHeightLocal, cellSize - recessWallThickness * 2 + 0.02),
+              this.crusherMaterial
+            );
+            e.position.set(world.x + cellSize / 2 - recessWallThickness / 2, wallCenterLocalY, world.z);
+            e.castShadow = true;
+            e.receiveShadow = true;
+            this.crusherGroup.add(e);
+          }
+
+          // Recess cap (the pocket ceiling above the player in the safe cell)
+          const cap = new THREE.Mesh(
+            new THREE.BoxGeometry(cellSize + 0.02, recessCapThickness, cellSize + 0.02),
+            this.crusherMaterial
+          );
+          cap.position.set(world.x, capCenterLocalY, world.z);
+          cap.castShadow = true;
+          cap.receiveShadow = true;
+          this.crusherGroup.add(cap);
+        } else {
+          // Solid crushing panel
+          const panel = new THREE.Mesh(
+            new THREE.BoxGeometry(cellSize + 0.02, slabThickness, cellSize + 0.02),
+            this.crusherMaterial
+          );
+          panel.position.set(world.x, 0, world.z);
+          panel.castShadow = true;
+          panel.receiveShadow = true;
+          this.crusherGroup.add(panel);
+        }
+      }
+    }
+
+    // Red underside glow plane just below the slab bottom
     const underside = new THREE.Mesh(
-      new THREE.PlaneGeometry(this.gridSize * this.cellSize, this.gridSize * this.cellSize),
-      new THREE.MeshBasicMaterial({ color: 0x5b1414, transparent: true, opacity: 0.16 })
+      new THREE.PlaneGeometry(this.gridSize * cellSize, this.gridSize * cellSize),
+      new THREE.MeshBasicMaterial({ color: 0x5b1414, transparent: true, opacity: 0.14 })
     );
     underside.rotation.x = Math.PI / 2;
-    underside.position.y = -0.35;
+    underside.position.y = -halfSlab - 0.01;
     this.crusherGroup.add(underside);
 
     this.crusherGroup.position.y = this.crusherTopY;
