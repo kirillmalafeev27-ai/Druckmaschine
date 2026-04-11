@@ -29,6 +29,8 @@ class CrusherRoomRenderer {
     this.crusherTopY = 5.75;
     this.crusherBottomY = 0.85;
 
+    this.ceilingY = this.crusherTopY - 0.34;
+
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x030204);
     this.scene.fog = new THREE.Fog(0x030204, 4, 22);
@@ -730,6 +732,7 @@ class CrusherRoomRenderer {
     const eastX = this.roomHalf;
     const entranceColumns = new Set([3, 4]);
     const doorRows = new Set(levelData.doors.map((door) => door.row));
+    const doorJambHeight = 3.1;
 
     for (let column = 0; column < this.gridSize; column += 1) {
       const x = this.cellToWorld(column, 0).x;
@@ -744,6 +747,11 @@ class CrusherRoomRenderer {
       if (!doorRows.has(row)) {
         this._addWallSegment(westX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallA' : 'wallB');
         this._addWallSegment(eastX, z, Math.PI / 2, wallThickness, row % 2 === 0 ? 'wallB' : 'wallA');
+      } else {
+        const aboveHeight = this.ceilingY - doorJambHeight;
+        const centerY = doorJambHeight + aboveHeight / 2;
+        this._addAboveDoorSegment(westX, z, Math.PI / 2, wallThickness, aboveHeight, centerY);
+        this._addAboveDoorSegment(eastX, z, Math.PI / 2, wallThickness, aboveHeight, centerY);
       }
     }
 
@@ -756,11 +764,12 @@ class CrusherRoomRenderer {
   }
 
   _addWallSegment(x, z, rotationY, thickness, variantKey) {
+    const boxHeight = this.ceilingY;
     const wall = new THREE.Mesh(
-      new THREE.BoxGeometry(this.cellSize + 0.06, this.wallHeight, thickness),
+      new THREE.BoxGeometry(this.cellSize + 0.06, boxHeight, thickness),
       this.wallMaterial
     );
-    wall.position.set(x, this.wallHeight / 2, z);
+    wall.position.set(x, boxHeight / 2, z);
     wall.rotation.y = rotationY;
     wall.castShadow = true;
     wall.receiveShadow = true;
@@ -772,6 +781,18 @@ class CrusherRoomRenderer {
       visual.rotation.y = rotationY;
       this.rootGroup.add(visual);
     }
+  }
+
+  _addAboveDoorSegment(x, z, rotationY, thickness, height, centerY) {
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(this.cellSize + 0.06, height, thickness),
+      this.wallMaterial
+    );
+    wall.position.set(x, centerY, z);
+    wall.rotation.y = rotationY;
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    this.rootGroup.add(wall);
   }
 
   _createEntrance() {
@@ -798,8 +819,50 @@ class CrusherRoomRenderer {
       this.rootGroup.add(rogue);
     }
 
+    this._createInactiveDoor();
+
     this._placeProp('torch', 2, 7, { offsetX: -0.55, offsetZ: 0.65, footprint: 0.56, maxHeight: 1.6 });
     this._placeProp('torch', 5, 7, { offsetX: 0.55, offsetZ: 0.65, footprint: 0.56, maxHeight: 1.6 });
+  }
+
+  _createInactiveDoor() {
+    const z = this.roomHalf;
+    const jambHeight = 3.1;
+    const openingWidth = this.cellSize * 2;
+    const doorWidth = openingWidth - 0.2;
+    const wallThickness = 0.42;
+
+    const frame = new THREE.Group();
+    const leftJamb = new THREE.Mesh(new THREE.BoxGeometry(0.22, jambHeight, 0.22), this.frameMaterial);
+    const rightJamb = new THREE.Mesh(new THREE.BoxGeometry(0.22, jambHeight, 0.22), this.frameMaterial);
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(openingWidth + 0.3, 0.28, 0.22), this.frameMaterial);
+
+    leftJamb.position.set(-openingWidth / 2, jambHeight / 2, 0);
+    rightJamb.position.set(openingWidth / 2, jambHeight / 2, 0);
+    lintel.position.set(0, jambHeight - 0.1, 0);
+
+    frame.add(leftJamb, rightJamb, lintel);
+    frame.position.set(0, 0, z);
+    this.rootGroup.add(frame);
+
+    const panel = new THREE.Mesh(
+      new THREE.BoxGeometry(doorWidth, 2.65, 0.16),
+      this.doorMaterial.clone()
+    );
+    panel.position.set(0, 1.32, z);
+    panel.castShadow = true;
+    panel.receiveShadow = true;
+    this.rootGroup.add(panel);
+
+    const aboveHeight = this.ceilingY - jambHeight;
+    const above = new THREE.Mesh(
+      new THREE.BoxGeometry(openingWidth + 0.3, aboveHeight, wallThickness),
+      this.wallMaterial
+    );
+    above.position.set(0, jambHeight + aboveHeight / 2, z);
+    above.castShadow = true;
+    above.receiveShadow = true;
+    this.rootGroup.add(above);
   }
 
   _createDoors(levelData) {

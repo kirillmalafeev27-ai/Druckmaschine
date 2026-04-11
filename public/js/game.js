@@ -131,6 +131,7 @@ class Game {
 
     this.hintDoorId = null;
     this.hintUntil = 0;
+    this.hintCooldownUntil = 0;
     this.timerRevealUntil = 0;
     this.messageTimeoutId = null;
     this.transitionTimeoutId = null;
@@ -250,6 +251,7 @@ class Game {
     this.currentQuestion = null;
     this.hintDoorId = null;
     this.hintUntil = 0;
+    this.hintCooldownUntil = 0;
     this.timerRevealUntil = 0;
     this.lastSafeState = null;
     this.lastDoorPromptId = null;
@@ -518,10 +520,22 @@ class Game {
       steps = 2;
       feedback = 'Верно! +2 хода.';
     } else if (bonusType === 'hint') {
-      this.hintDoorId = this.correctDoorId;
-      this.hintUntil = now + 6500;
-      this.renderer.setHintedDoor(this.correctDoorId);
-      feedback = 'Верно! +1 ход и подсказка по двери.';
+      if (now < this.hintCooldownUntil) {
+        const remaining = Math.ceil((this.hintCooldownUntil - now) / 1000);
+        feedback = `Верно! +1 ход. Подсказка перезаряжается ещё ${remaining} c.`;
+      } else {
+        const wrongDoors = this.levelData.doors.filter((door) => door.id !== this.correctDoorId);
+        if (wrongDoors.length) {
+          const wrongDoor = wrongDoors[randomInt(0, wrongDoors.length - 1)];
+          this.hintDoorId = wrongDoor.id;
+          this.hintUntil = now + 6500;
+          this.hintCooldownUntil = now + 180000;
+          this.renderer.setHintedDoor(wrongDoor.id);
+          feedback = 'Верно! +1 ход и подсказка: эта дверь неверная.';
+        } else {
+          feedback = 'Верно! +1 ход.';
+        }
+      }
     } else if (bonusType === 'shield') {
       this.shieldCharges += 1;
       feedback = 'Верно! +1 ход и щит от одного удара.';
@@ -835,7 +849,7 @@ class Game {
     }
 
     if (this.hintDoorId) {
-      container.appendChild(this._createStatusBadge('Подсказка по двери'));
+      container.appendChild(this._createStatusBadge('Подсказка: неверная дверь'));
     }
 
     if (this.timerRevealUntil > performance.now()) {
