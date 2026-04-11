@@ -4,14 +4,9 @@ const START_SAFE_TILES = [
   { x: 3, y: 7 },
   { x: 4, y: 7 }
 ];
-const DOOR_BLUEPRINT = [
-  { id: 'door-left-1', side: 'left', row: 1, approach: { x: 0, y: 1 } },
-  { id: 'door-left-2', side: 'left', row: 3, approach: { x: 0, y: 3 } },
-  { id: 'door-left-3', side: 'left', row: 5, approach: { x: 0, y: 5 } },
-  { id: 'door-right-1', side: 'right', row: 1, approach: { x: 7, y: 1 } },
-  { id: 'door-right-2', side: 'right', row: 3, approach: { x: 7, y: 3 } },
-  { id: 'door-right-3', side: 'right', row: 5, approach: { x: 7, y: 5 } }
-];
+const MIN_SAFE_DISTANCE = 4;
+const DOOR_COUNT = 6;
+const DOOR_MIN_SPACING = 2;
 const SCREEN_IDS = [
   'menu-screen',
   'game-screen',
@@ -191,6 +186,7 @@ class Game {
     this._hidePanels();
     this._hideDoorPrompt();
     this.ui.deathOverlay.classList.remove('active');
+    this.ui.deathOverlay.classList.remove('instant');
 
     this.questionManager = new QuestionManager(this.langLevel);
     this.questionManager.setLevel(this.langLevel);
@@ -259,11 +255,8 @@ class Game {
   }
 
   _createLevelData(level) {
+    const doors = this._generateDoors();
     const safeTiles = this._generateSafeTiles(level);
-    const doors = DOOR_BLUEPRINT.map((door) => ({
-      ...door,
-      approach: { ...door.approach }
-    }));
     const correctDoor = doors[randomInt(0, doors.length - 1)];
 
     return {
@@ -276,64 +269,77 @@ class Game {
     };
   }
 
-  _generateSafeTiles(level) {
-    const safeTiles = [];
-    const blocked = new Set(START_SAFE_TILES.map((tile) => tileKey(tile.x, tile.y)));
-    const maxSafe = Math.max(4, 8 - Math.floor((level - 1) / 3));
-    const minSafe = Math.max(4, maxSafe - 2);
-    const targetCount = randomInt(minSafe, maxSafe);
+  _generateDoors() {
+    const candidates = [];
+    for (let col = 0; col < GRID_SIZE; col += 1) {
+      candidates.push({ side: 'north', col, row: 0, approach: { x: col, y: 0 } });
+    }
+    for (let row = 0; row < GRID_SIZE; row += 1) {
+      candidates.push({ side: 'west', col: 0, row, approach: { x: 0, y: row } });
+      candidates.push({ side: 'east', col: GRID_SIZE - 1, row, approach: { x: GRID_SIZE - 1, y: row } });
+    }
 
-    const addTile = (x, y) => {
-      if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
-        return false;
-      }
+    const shuffled = shuffleArray(candidates);
+    const chosen = [];
+    let index = 0;
 
-      const key = tileKey(x, y);
-      if (blocked.has(key)) {
-        return false;
-      }
-
-      blocked.add(key);
-      safeTiles.push({ x, y });
-      return true;
-    };
-
-    addTile(randomInt(1, 6), randomInt(1, 2));
-    addTile(randomInt(1, 6), randomInt(3, 5));
-
-    while (safeTiles.length < targetCount) {
-      let next = null;
-
-      if (safeTiles.length && Math.random() < 0.65) {
-        const anchor = safeTiles[randomInt(0, safeTiles.length - 1)];
-        const offsets = shuffleArray([
-          { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 },
-          { x: -1, y: -1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: 1, y: 1 },
-          { x: -2, y: 0 }, { x: 2, y: 0 }, { x: 0, y: -2 }, { x: 0, y: 2 }
-        ]);
-
-        next = offsets
-          .map((offset) => ({ x: anchor.x + offset.x, y: anchor.y + offset.y }))
-          .find((tile) => !blocked.has(tileKey(tile.x, tile.y)) && tile.x >= 0 && tile.x < GRID_SIZE && tile.y >= 0 && tile.y < GRID_SIZE);
-      }
-
-      if (!next) {
-        const freeTiles = [];
-        for (let y = 0; y < GRID_SIZE; y += 1) {
-          for (let x = 0; x < GRID_SIZE; x += 1) {
-            if (!blocked.has(tileKey(x, y))) {
-              freeTiles.push({ x, y });
-            }
-          }
-        }
-        next = freeTiles.length ? freeTiles[randomInt(0, freeTiles.length - 1)] : null;
-      }
-
-      if (!next) {
+    for (const cand of shuffled) {
+      if (chosen.length >= DOOR_COUNT) {
         break;
       }
 
-      addTile(next.x, next.y);
+      const tooClose = chosen.some((other) =>
+        Math.abs(other.approach.x - cand.approach.x) + Math.abs(other.approach.y - cand.approach.y) < DOOR_MIN_SPACING
+      );
+      if (tooClose) {
+        continue;
+      }
+
+      index += 1;
+      chosen.push({
+        id: `door-${cand.side}-${index}`,
+        side: cand.side,
+        col: cand.col,
+        row: cand.row,
+        approach: { x: cand.approach.x, y: cand.approach.y }
+      });
+    }
+
+    return chosen;
+  }
+
+  _generateSafeTiles(level) {
+    const safeTiles = [];
+    const placed = [...START_SAFE_TILES];
+    const targetCount = Math.max(3, 5 - Math.floor((level - 1) / 3));
+
+    const isFarEnough = (x, y) => {
+      for (const tile of placed) {
+        if (Math.abs(tile.x - x) + Math.abs(tile.y - y) < MIN_SAFE_DISTANCE) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const candidates = [];
+    for (let y = 0; y < GRID_SIZE; y += 1) {
+      for (let x = 0; x < GRID_SIZE; x += 1) {
+        if (!START_SAFE_TILES.some((tile) => tile.x === x && tile.y === y)) {
+          candidates.push({ x, y });
+        }
+      }
+    }
+
+    const shuffled = shuffleArray(candidates);
+    for (const tile of shuffled) {
+      if (safeTiles.length >= targetCount) {
+        break;
+      }
+      if (isFarEnough(tile.x, tile.y)) {
+        safeTiles.push(tile);
+        placed.push(tile);
+      }
     }
 
     return safeTiles;
@@ -390,6 +396,20 @@ class Game {
       const remaining = this.crusher.nextDropAt - now;
       danger = clamp(1 - remaining / 5000, 0, 1);
       if (remaining <= 0) {
+        if (!this._isPlayerSafe()) {
+          if (this.shieldCharges > 0) {
+            this.shieldCharges -= 1;
+            this.audio.playShieldBreak();
+            this._updateStatusEffects();
+            this._showMessage('Щит спас от удара, но исчез.', 1800);
+            this._scheduleCrusherCycle();
+            return;
+          }
+          this.audio.playCrusherStart();
+          this.audio.playCrusherImpact();
+          this._lose('Давилка настигла вас вне безопасной зоны.', true);
+          return;
+        }
         this.crusher.phase = 'dropping';
         this.crusher.phaseStartedAt = now;
         this.audio.playCrusherStart();
@@ -405,7 +425,17 @@ class Game {
         this.crusher.phaseStartedAt = now;
         this.audio.playCrusherImpact();
         this.renderer.shake(0.12, 450);
-        this._resolveCrusherImpact();
+        if (!this._isPlayerSafe()) {
+          if (this.shieldCharges > 0) {
+            this.shieldCharges -= 1;
+            this.audio.playShieldBreak();
+            this._updateStatusEffects();
+            this._showMessage('Щит спас от удара, но исчез.', 1800);
+          } else {
+            this._lose('Давилка настигла вас вне безопасной зоны.', true);
+            return;
+          }
+        }
         progress = 1;
       }
     } else if (this.crusher.phase === 'down') {
@@ -427,26 +457,6 @@ class Game {
 
     this.renderer.setCrusherState(progress, this.crusher.phase, danger);
     this.audio.setCrusherDanger(danger);
-  }
-
-  _resolveCrusherImpact() {
-    if (this.state === 'won' || this.state === 'lost') {
-      return;
-    }
-
-    if (this._isPlayerSafe()) {
-      return;
-    }
-
-    if (this.shieldCharges > 0) {
-      this.shieldCharges -= 1;
-      this.audio.playShieldBreak();
-      this._updateStatusEffects();
-      this._showMessage('Щит спас от удара, но исчез.', 1800);
-      return;
-    }
-
-    this._lose('Давилка настигла вас вне безопасной зоны.');
   }
 
   _isPlayerSafe() {
@@ -651,7 +661,7 @@ class Game {
     }, 500);
   }
 
-  _lose(message) {
+  _lose(message, instant = false) {
     if (this.state === 'won' || this.state === 'lost') {
       return;
     }
@@ -662,6 +672,9 @@ class Game {
     this._hideDoorPrompt();
     this.audio.setCrusherDanger(0);
     this.ui.deathOverlay.classList.add('active');
+    if (instant) {
+      this.ui.deathOverlay.classList.add('instant');
+    }
     this._saveScore();
 
     const accuracy = this._getAccuracy();
@@ -669,12 +682,13 @@ class Game {
     this.ui.loseStats.textContent =
       `Уровень: ${this.currentLevel}. Точность: ${accuracy}%. Правильных ответов: ${this.questionsCorrect}/${this.questionsAnswered}.`;
 
+    const delay = instant ? 350 : 650;
     window.setTimeout(() => {
       if (this.renderer) {
         this.renderer.stopLoop();
       }
       this._setActiveScreen('lose-screen');
-    }, 650);
+    }, delay);
   }
 
   _saveScore() {
@@ -968,6 +982,7 @@ class Game {
     this._hideLoading();
     this.ui.messageBanner.classList.add('hidden');
     this.ui.deathOverlay.classList.remove('active');
+    this.ui.deathOverlay.classList.remove('instant');
   }
 
   _disposeRuntime() {
