@@ -32,8 +32,8 @@ class CrusherRoomRenderer {
     this.ceilingY = this.crusherTopY - 0.34;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a0812);
-    this.scene.fog = new THREE.Fog(0x0a0812, 6, 26);
+    this.scene.background = new THREE.Color(0x12101a);
+    this.scene.fog = new THREE.Fog(0x12101a, 10, 35);
 
     this.camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 120);
     this.camera.rotation.order = 'YXZ';
@@ -48,7 +48,7 @@ class CrusherRoomRenderer {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.7;
+    this.renderer.toneMappingExposure = 1.6;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -137,8 +137,8 @@ class CrusherRoomRenderer {
       map: floorTexture,
       normalMap: floorNormal,
       normalScale: new THREE.Vector2(0.8, 0.8),
-      color: 0x6a5a4e,
-      roughness: 0.95,
+      color: 0x9a8a78,
+      roughness: 0.92,
       metalness: 0.02
     });
 
@@ -154,8 +154,8 @@ class CrusherRoomRenderer {
       map: wallTexture,
       normalMap: wallNormal,
       normalScale: new THREE.Vector2(1.0, 1.0),
-      color: 0x5a4a40,
-      roughness: 0.92,
+      color: 0x8a7a6a,
+      roughness: 0.88,
       metalness: 0.03
     });
 
@@ -171,14 +171,14 @@ class CrusherRoomRenderer {
       map: doorTexture,
       normalMap: doorNormal,
       normalScale: new THREE.Vector2(0.7, 0.7),
-      color: 0x3a2218,
-      roughness: 0.82,
+      color: 0x5a3828,
+      roughness: 0.78,
       metalness: 0.06
     });
 
     this.frameMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a1c15,
-      roughness: 0.85,
+      color: 0x4a3c30,
+      roughness: 0.82,
       metalness: 0.15
     });
 
@@ -189,8 +189,8 @@ class CrusherRoomRenderer {
 
     this.crusherMaterial = new THREE.MeshStandardMaterial({
       map: crusherTexture,
-      color: 0x6a5548,
-      roughness: 0.9,
+      color: 0x8a7568,
+      roughness: 0.88,
       metalness: 0.1
     });
 
@@ -221,8 +221,8 @@ class CrusherRoomRenderer {
     });
 
     this.propFallbackMaterial = new THREE.MeshStandardMaterial({
-      color: 0x5a4a3e,
-      roughness: 0.85,
+      color: 0x8a7a6e,
+      roughness: 0.82,
       metalness: 0.04
     });
   }
@@ -665,10 +665,10 @@ class CrusherRoomRenderer {
   }
 
   _setupLights() {
-    const ambient = new THREE.AmbientLight(0x2a2430, 0.45);
-    const hemi = new THREE.HemisphereLight(0x3a3050, 0x1a1008, 0.55);
+    const ambient = new THREE.AmbientLight(0x4a4060, 0.9);
+    const hemi = new THREE.HemisphereLight(0x6a6080, 0x2a2010, 0.85);
 
-    const directional = new THREE.DirectionalLight(0x7080b0, 0.42);
+    const directional = new THREE.DirectionalLight(0x8090c0, 0.6);
     directional.position.set(8, 18, 10);
     directional.castShadow = true;
     directional.shadow.mapSize.width = 2048;
@@ -677,8 +677,8 @@ class CrusherRoomRenderer {
     directional.shadow.camera.far = 50;
     directional.shadow.bias = -0.001;
 
-    // Player-carried lamp: warm, narrow, bright where the player looks
-    this.cameraLamp = new THREE.PointLight(0xffb070, 0.85, 12, 2);
+    // Player-carried lamp: warm, bright where the player looks
+    this.cameraLamp = new THREE.PointLight(0xffb070, 1.6, 16, 2);
     this.cameraLamp.position.set(0, -0.05, 0.1);
     this.cameraLamp.castShadow = true;
     this.cameraLamp.shadow.mapSize.width = 512;
@@ -686,12 +686,11 @@ class CrusherRoomRenderer {
     this.camera.add(this.cameraLamp);
 
     // Subtle aura around the player — "a little" glow
-    this.playerAura = new THREE.PointLight(0xffc888, 0.22, 3.2, 2);
+    this.playerAura = new THREE.PointLight(0xffc888, 0.35, 5, 2);
     this.playerAura.position.set(0, -0.4, 0);
     this.camera.add(this.playerAura);
 
     this.scene.add(ambient, hemi, directional);
-    this.renderer.toneMappingExposure = 0.95;
   }
 
   _bindControls() {
@@ -1309,13 +1308,13 @@ class CrusherRoomRenderer {
       this.rootGroup.add(torch);
     }
 
-    const light = new THREE.PointLight(0xff8a3a, 0.85, 11, 2);
+    const light = new THREE.PointLight(0xff9a4a, 1.4, 14, 2);
     light.position.set(world.x + lightOffsetX, 2.3, world.z + lightOffsetZ);
     light.castShadow = false;
     this.scene.add(light);
     this.torchLights.push({
       light,
-      base: 0.82,
+      base: 1.3,
       offset: idx * 1.31 + Math.random() * Math.PI * 2
     });
   }
