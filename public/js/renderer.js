@@ -1432,6 +1432,26 @@ class CrusherRoomRenderer {
       }
     }
 
+    // Perimeter rim strips: seal the gap between per-cell panels and room walls
+    const wallThickness = 0.42;
+    const rimDepth = wallThickness + 0.3;
+    const roomSpan = this.gridSize * cellSize + 0.4;
+    const rimPositions = [
+      { x: 0, z: -this.roomHalf, rotY: 0 },
+      { x: 0, z: this.roomHalf, rotY: 0 },
+      { x: -this.roomHalf, z: 0, rotY: Math.PI / 2 },
+      { x: this.roomHalf, z: 0, rotY: Math.PI / 2 }
+    ];
+    for (const rim of rimPositions) {
+      const rimMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(roomSpan, slabThickness, rimDepth),
+        this.crusherMaterial
+      );
+      rimMesh.position.set(rim.x, 0, rim.z);
+      rimMesh.rotation.y = rim.rotY;
+      this.crusherGroup.add(rimMesh);
+    }
+
     // Red underside glow plane just below the slab bottom
     const underside = new THREE.Mesh(
       new THREE.PlaneGeometry(this.gridSize * cellSize, this.gridSize * cellSize),
