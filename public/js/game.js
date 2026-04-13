@@ -176,22 +176,24 @@ class Game {
     };
   }
 
-  async init(settings) {
+  async init(settings, reuseQuestions = false) {
     this._disposeRuntime();
     this._clearTimeouts();
     this._applySettings(settings);
     this._resetRunState();
     this._setActiveScreen('game-screen');
-    this._showLoading('Загружаем комнату и упражнения...');
+    this._showLoading('Загружаем комнату...');
     this._hidePanels();
     this._hideDoorPrompt();
     this.ui.deathOverlay.classList.remove('active');
     this.ui.deathOverlay.classList.remove('instant');
 
-    this.questionManager = new QuestionManager(this.langLevel);
-    this.questionManager.setLevel(this.langLevel);
-    this.questionManager.setLexicalTopic(this.lexicalTopic);
-    this.questionManager.configureSlots(this.slotConfigs);
+    if (!reuseQuestions || !this.questionManager) {
+      this.questionManager = new QuestionManager(this.langLevel);
+      this.questionManager.setLevel(this.langLevel);
+      this.questionManager.setLexicalTopic(this.lexicalTopic);
+      this.questionManager.configureSlots(this.slotConfigs);
+    }
 
     this.renderer = new CrusherRoomRenderer(this.ui.canvas);
     this.audio = new AudioManager();
@@ -203,10 +205,11 @@ class Game {
     this.player = { ...this.levelData.start };
     this.startedAt = performance.now();
 
-    await Promise.allSettled([
-      this.renderer.ensureModelsLoaded(),
-      this.questionManager.prefetchAll()
-    ]);
+    const loadTasks = [this.renderer.ensureModelsLoaded()];
+    if (!reuseQuestions || !this.questionManager) {
+      loadTasks.push(this.questionManager.prefetchAll());
+    }
+    await Promise.allSettled(loadTasks);
 
     this.renderer.buildLevel(this.levelData);
     this.renderer.setPlayerCell(this.player.x, this.player.y, true);
@@ -349,7 +352,8 @@ class Game {
     const now = performance.now();
     this.crusher.phase = 'waiting';
     this.crusher.phaseStartedAt = now;
-    this.crusher.waitMs = (15 + Math.random() * 5) * 1000;
+    const baseWait = this.currentLevel <= 1 ? 25 : this.currentLevel <= 2 ? 20 : 12;
+    this.crusher.waitMs = (baseWait + 1 + Math.random() * 9) * 1000;
     this.crusher.dropMs = 2000 + (1 + Math.random() * 2) * 1000;
     this.crusher.downMs = 850;
     this.crusher.riseMs = 900;
@@ -715,7 +719,7 @@ class Game {
   }
 
   restartLevel() {
-    this.init(this._buildSettings(this.currentLevel)).catch((error) => {
+    this.init(this._buildSettings(this.currentLevel), true).catch((error) => {
       console.error('Failed to restart level:', error);
     });
   }
