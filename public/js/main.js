@@ -188,6 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (game.state === 'direction_select') {
+      if (event.key === 'q' || event.key === 'Q') {
+        event.preventDefault();
+        game.rotateView(-1);
+        return;
+      }
+      if (event.key === 'e' || event.key === 'E') {
+        event.preventDefault();
+        game.rotateView(1);
+        return;
+      }
+
       const moveKeyMap = {
         ArrowUp: 'up',
         ArrowDown: 'down',

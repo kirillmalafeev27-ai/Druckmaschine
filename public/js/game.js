@@ -600,6 +600,10 @@ class Game {
 
     this.renderer.nudgeYaw(direction);
     this._updateDoorPrompt();
+
+    if (this.state === 'direction_select') {
+      this._updateDirectionButtons();
+    }
   }
 
   tryUseDoor() {
