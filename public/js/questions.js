@@ -137,7 +137,7 @@ class QuestionManager {
     const rawQuestion = pool.shift();
     this.lastQuestion = { slotId, question: rawQuestion };
 
-    if (pool.length < 5) {
+    if (pool.length === 0) {
       this._ensurePool(slotId);
     }
 
@@ -152,7 +152,7 @@ class QuestionManager {
       this.lastQuestion = null;
     }
 
-    if (!this.questionPool[slotId] || this.questionPool[slotId].length < 5) {
+    if (!this.questionPool[slotId] || this.questionPool[slotId].length === 0) {
       this._ensurePool(slotId);
     }
   }
@@ -175,7 +175,7 @@ class QuestionManager {
     }
 
     const pool = this.questionPool[slotId];
-    if (pool && pool.length >= 8) {
+    if (pool && pool.length > 0) {
       return pool;
     }
 
@@ -207,7 +207,7 @@ class QuestionManager {
         lexicalTopic: this.lexicalTopic,
         grammarTopic: slotConfig.grammarTopic,
         isWortstellung: Boolean(slotConfig.slotDef.isWortstellung),
-        count: 24,
+        count: 30,
         exclude: seen
       })
     });
