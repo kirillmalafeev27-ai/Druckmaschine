@@ -354,7 +354,7 @@ class Game {
     this.crusher.phaseStartedAt = now;
     const baseWait = this.currentLevel <= 1 ? 22 : this.currentLevel <= 2 ? 17 : 12;
     this.crusher.waitMs = (baseWait + 1 + Math.random() * 4) * 1000;
-    this.crusher.dropMs = 2000 + (1 + Math.random() * 2) * 1000;
+    this.crusher.dropMs = (1 + 1 + Math.random()) * 1000;
     this.crusher.downMs = 850;
     this.crusher.riseMs = 900;
     this.crusher.nextDropAt = now + this.crusher.waitMs;
