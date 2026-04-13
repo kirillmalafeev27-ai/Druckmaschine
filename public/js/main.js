@@ -119,7 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.dir-btn').forEach((button) => {
     button.addEventListener('click', () => {
-      game.movePlayer(button.dataset.dir);
+      if (button.dataset.rotate) {
+        game.rotateView(Number(button.dataset.rotate));
+      } else {
+        game.movePlayer(button.dataset.dir);
+      }
     });
   });
 
@@ -188,24 +192,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (game.state === 'direction_select') {
-      const moveKeyMap = {
-        ArrowUp: 'up',
-        ArrowDown: 'down',
-        ArrowLeft: 'left',
-        ArrowRight: 'right',
-        w: 'up',
-        W: 'up',
-        s: 'down',
-        S: 'down',
-        a: 'left',
-        A: 'left',
-        d: 'right',
-        D: 'right'
-      };
-
-      if (moveKeyMap[event.key]) {
+      if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A' || event.key === 'q' || event.key === 'Q') {
         event.preventDefault();
-        game.movePlayer(moveKeyMap[event.key]);
+        game.rotateView(-1);
+        return;
+      }
+      if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') {
+        event.preventDefault();
+        game.rotateView(1);
+        return;
+      }
+      if (event.key === 'ArrowUp' || event.key === 'w' || event.key === 'W') {
+        event.preventDefault();
+        game.movePlayer('up');
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 's' || event.key === 'S') {
+        event.preventDefault();
+        game.movePlayer('down');
+        return;
       }
       return;
     }
