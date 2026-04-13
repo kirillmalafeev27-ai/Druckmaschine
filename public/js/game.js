@@ -600,10 +600,6 @@ class Game {
 
     this.renderer.nudgeYaw(direction);
     this._updateDoorPrompt();
-
-    if (this.state === 'direction_select') {
-      this._updateDirectionButtons();
-    }
   }
 
   tryUseDoor() {
@@ -820,10 +816,6 @@ class Game {
   _updateDirectionButtons() {
     const buttons = document.querySelectorAll('.dir-btn');
     buttons.forEach((button) => {
-      if (button.dataset.rotate) {
-        button.disabled = false;
-        return;
-      }
       const delta = this.renderer.getMoveDelta(button.dataset.dir);
       const nextX = this.player.x + delta.x;
       const nextY = this.player.y + delta.y;

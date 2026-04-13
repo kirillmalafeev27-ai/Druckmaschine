@@ -1552,7 +1552,7 @@ class CrusherRoomRenderer {
   }
 
   nudgeYaw(direction) {
-    this.targetYaw += direction * (Math.PI / 8);
+    this.targetYaw -= direction * (Math.PI / 8);
   }
 
   getMoveDelta(relativeDirection) {
@@ -1569,7 +1569,7 @@ class CrusherRoomRenderer {
 
   getInteractableDoorId(playerX, playerY) {
     const forward = new THREE.Vector3(
-      Math.sin(this.yaw) * Math.cos(this.pitch),
+      -Math.sin(this.yaw) * Math.cos(this.pitch),
       0,
       -Math.cos(this.yaw) * Math.cos(this.pitch)
     ).normalize();
@@ -1595,7 +1595,7 @@ class CrusherRoomRenderer {
 
   _getCardinalIndex() {
     const normalized = ((this.targetYaw % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    return Math.round(normalized / (Math.PI / 2)) % 4;
+    return (4 - Math.round(normalized / (Math.PI / 2)) % 4) % 4;
   }
 
   _animate(deltaSeconds) {
