@@ -350,7 +350,7 @@ class Game {
     this.crusher.phase = 'waiting';
     this.crusher.phaseStartedAt = now;
     this.crusher.waitMs = (15 + Math.random() * 5) * 1000;
-    this.crusher.dropMs = Math.max(700, 1150 - (this.currentLevel - 1) * 35);
+    this.crusher.dropMs = 2000 + (1 + Math.random() * 2) * 1000;
     this.crusher.downMs = 850;
     this.crusher.riseMs = 900;
     this.crusher.nextDropAt = now + this.crusher.waitMs;
@@ -396,46 +396,38 @@ class Game {
       const remaining = this.crusher.nextDropAt - now;
       danger = clamp(1 - remaining / 5000, 0, 1);
       if (remaining <= 0) {
-        if (!this._isPlayerSafe()) {
-          if (this.shieldCharges > 0) {
-            this.shieldCharges -= 1;
-            this.audio.playShieldBreak();
-            this._updateStatusEffects();
-            this._showMessage('Щит спас от удара, но исчез.', 1800);
-            this._scheduleCrusherCycle();
-            return;
-          }
-          this.audio.playCrusherStart();
-          this.audio.playCrusherImpact();
-          this._lose('Давилка настигла вас вне безопасной зоны.', true);
-          return;
-        }
         this.crusher.phase = 'dropping';
         this.crusher.phaseStartedAt = now;
+        this.crusher.hitHead = false;
         this.audio.playCrusherStart();
-        this._showMessage('Давилка пошла вниз.', 1200);
+        this._showMessage('Давилка пошла вниз!', 1200);
       }
     }
 
     if (this.crusher.phase === 'dropping') {
       progress = clamp((now - this.crusher.phaseStartedAt) / this.crusher.dropMs, 0, 1);
       danger = 1;
+
+      const headProgress = this.renderer.getHeadCrushProgress();
+      if (!this.crusher.hitHead && progress >= headProgress && !this._isPlayerSafe()) {
+        this.crusher.hitHead = true;
+        if (this.shieldCharges > 0) {
+          this.shieldCharges -= 1;
+          this.audio.playShieldBreak();
+          this._updateStatusEffects();
+          this._showMessage('Щит спас от удара, но исчез.', 1800);
+        } else {
+          this.audio.playCrusherImpact();
+          this._lose('Давилка раздавила вас.', false);
+          return;
+        }
+      }
+
       if (progress >= 1) {
         this.crusher.phase = 'down';
         this.crusher.phaseStartedAt = now;
         this.audio.playCrusherImpact();
         this.renderer.shake(0.12, 450);
-        if (!this._isPlayerSafe()) {
-          if (this.shieldCharges > 0) {
-            this.shieldCharges -= 1;
-            this.audio.playShieldBreak();
-            this._updateStatusEffects();
-            this._showMessage('Щит спас от удара, но исчез.', 1800);
-          } else {
-            this._lose('Давилка настигла вас вне безопасной зоны.', true);
-            return;
-          }
-        }
         progress = 1;
       }
     } else if (this.crusher.phase === 'down') {

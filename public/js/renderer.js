@@ -1520,6 +1520,10 @@ class CrusherRoomRenderer {
     }
   }
 
+  getHeadCrushProgress() {
+    return (this.crusherTopY - this.eyeHeight) / (this.crusherTopY - this.crusherBottomY);
+  }
+
   setCrusherState(progress, phase, danger) {
     this.crusherState.progress = progress;
     this.crusherState.phase = phase;
