@@ -121,6 +121,7 @@ class Game {
     this.questionsCorrect = 0;
     this.doorAttempts = 0;
     this.shieldCharges = 0;
+    this.shieldCooldownUntil = 0;
     this.currentSlotId = null;
     this.currentQuestion = null;
 
@@ -246,6 +247,7 @@ class Game {
     this.questionsCorrect = 0;
     this.doorAttempts = 0;
     this.shieldCharges = 0;
+    this.shieldCooldownUntil = 0;
     this.currentSlotId = null;
     this.currentQuestion = null;
     this.hintDoorId = null;
@@ -543,8 +545,16 @@ class Game {
         }
       }
     } else if (bonusType === 'shield') {
-      this.shieldCharges += 1;
-      feedback = 'Верно! +1 ход и щит от одного удара.';
+      if (now < this.shieldCooldownUntil) {
+        const remaining = Math.ceil((this.shieldCooldownUntil - now) / 1000);
+        feedback = `Верно! +1 ход. Щит перезаряжается ещё ${remaining} c.`;
+      } else if (this.shieldCharges >= 1) {
+        feedback = 'Верно! +1 ход. У вас уже есть щит.';
+      } else {
+        this.shieldCharges = 1;
+        this.shieldCooldownUntil = now + 120000;
+        feedback = 'Верно! +1 ход и щит от одного удара.';
+      }
     } else if (bonusType === 'timer') {
       this.timerRevealUntil = now + 8000;
       feedback = 'Верно! +1 ход и временный таймер давилки.';
