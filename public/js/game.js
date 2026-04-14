@@ -499,8 +499,13 @@ class Game {
         if (this.state === 'won' || this.state === 'lost') {
           return;
         }
-        this.state = 'direction_select';
-        this._showDirectionPanel();
+        if (this.movesLeft > 0) {
+          this.state = 'direction_select';
+          this._showDirectionPanel();
+        } else {
+          this.state = 'topic_select';
+          this._showTopicPanel();
+        }
       }, 850);
       return;
     }
@@ -528,9 +533,10 @@ class Game {
       steps = 2;
       feedback = 'Верно! +2 хода.';
     } else if (bonusType === 'hint') {
+      steps = 0;
       if (now < this.hintCooldownUntil) {
         const remaining = Math.ceil((this.hintCooldownUntil - now) / 1000);
-        feedback = `Верно! +1 ход. Подсказка перезаряжается ещё ${remaining} c.`;
+        feedback = `Верно! Подсказка перезаряжается ещё ${remaining} c.`;
       } else {
         const wrongDoors = this.levelData.doors.filter((door) => door.id !== this.correctDoorId);
         if (wrongDoors.length) {
@@ -539,25 +545,27 @@ class Game {
           this.hintUntil = now + 6500;
           this.hintCooldownUntil = now + 180000;
           this.renderer.setHintedDoor(wrongDoor.id);
-          feedback = 'Верно! +1 ход и подсказка: эта дверь неверная.';
+          feedback = 'Верно! Подсказка: эта дверь неверная.';
         } else {
-          feedback = 'Верно! +1 ход.';
+          feedback = 'Верно!';
         }
       }
     } else if (bonusType === 'shield') {
+      steps = 0;
       if (now < this.shieldCooldownUntil) {
         const remaining = Math.ceil((this.shieldCooldownUntil - now) / 1000);
-        feedback = `Верно! +1 ход. Щит перезаряжается ещё ${remaining} c.`;
+        feedback = `Верно! Щит перезаряжается ещё ${remaining} c.`;
       } else if (this.shieldCharges >= 1) {
-        feedback = 'Верно! +1 ход. У вас уже есть щит.';
+        feedback = 'Верно! У вас уже есть щит.';
       } else {
         this.shieldCharges = 1;
         this.shieldCooldownUntil = now + 120000;
-        feedback = 'Верно! +1 ход и щит от одного удара.';
+        feedback = 'Верно! Щит от одного удара активирован.';
       }
     } else if (bonusType === 'timer') {
+      steps = 0;
       this.timerRevealUntil = now + 8000;
-      feedback = 'Верно! +1 ход и временный таймер давилки.';
+      feedback = 'Верно! Временный таймер давилки активирован.';
     }
 
     this.movesLeft = steps;
