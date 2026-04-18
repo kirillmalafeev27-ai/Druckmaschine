@@ -1,16 +1,18 @@
 const express = require('express');
 const path = require('path');
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MODEL_NAME = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+const MODEL_NAME = process.env.AITUNNEL_MODEL || 'gpt-5.4';
+const MAX_COMPLETION_TOKENS = Number(process.env.AITUNNEL_MAX_TOKENS) || 8192;
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const aitunnel = new OpenAI({
+  apiKey: process.env.AITUNNEL_API_KEY,
+  baseURL: 'https://api.aitunnel.ru/v1',
 });
 
 const questionPool = Object.create(null);
@@ -119,8 +121,8 @@ app.post('/api/generate-questions', async (req, res) => {
     return res.status(400).json({ error: 'level and grammarTopic are required' });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' });
+  if (!process.env.AITUNNEL_API_KEY) {
+    return res.status(503).json({ error: 'AITUNNEL_API_KEY is not configured' });
   }
 
   const questionsCount = Math.max(1, Math.min(50, Number(count) || 30));
@@ -141,13 +143,13 @@ app.post('/api/generate-questions', async (req, res) => {
       exclude,
     });
 
-    const message = await anthropic.messages.create({
+    const completion = await aitunnel.chat.completions.create({
       model: MODEL_NAME,
-      max_tokens: 8192,
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const rawText = message.content?.[0]?.text?.trim() || '[]';
+    const rawText = completion.choices?.[0]?.message?.content?.trim() || '[]';
     const jsonMatch = rawText.match(/\[[\s\S]*\]/);
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     const validQuestions = parsed.filter(isValidQuestion);
