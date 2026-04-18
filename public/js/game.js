@@ -56,7 +56,7 @@ class Leaderboard {
       }
       return left.durationMs - right.durationMs;
     });
-    localStorage.setItem(this.key, JSON.stringify(scores.slice(0, 20)));
+    try { localStorage.setItem(this.key, JSON.stringify(scores.slice(0, 20))); } catch (_) {}
   }
 
   render() {

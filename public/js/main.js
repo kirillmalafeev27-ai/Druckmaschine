@@ -27,10 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const slotAssignments = Array(BONUS_SLOTS.length).fill(null);
   let pendingTutorialCallback = null;
 
-  const savedName = localStorage.getItem(PLAYER_NAME_KEY);
-  if (savedName) {
-    ui.playerName.value = savedName;
-  }
+  try {
+    const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+    if (savedName) {
+      ui.playerName.value = savedName;
+    }
+  } catch (_) {}
 
   renderLexicalGrid();
   renderSlots();
@@ -99,8 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) {
-      localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+    let tutorialSeen = false;
+    try { tutorialSeen = Boolean(localStorage.getItem(TUTORIAL_SEEN_KEY)); } catch (_) {}
+
+    if (!tutorialSeen) {
+      try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch (_) {}
       showTutorial(() => startGame(settings));
       return;
     }
@@ -362,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const playerName = ui.playerName.value.trim() || 'Spieler';
-    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+    try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
 
     return {
       playerName,
