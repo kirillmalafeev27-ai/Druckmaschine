@@ -147,17 +147,17 @@ Regeln für Lückenübungen:
 ${topicRule ? `GRAMMATIKREGELN für "${grammarTopic}" — halte dich STRIKT daran:\n${topicRule}\n` : ''}
 ${taskDescription}
 
-Уровень CEFR: ${level}. Строго соблюдай уровень! Не используй грамматику и лексику выше ${level}.
+GER-Niveau: ${level}. Halte dich STRIKT an dieses Niveau! Verwende KEINE Grammatik und KEINEN Wortschatz über ${level}.
 ${excludeNote}
 
-КРИТИЧЕСКИЕ ПРАВИЛА (нарушение = брак):
-1. Правильный ответ ДОЛЖЕН быть грамматически БЕЗУПРЕЧНЫМ. Перед выдачей мысленно проверь каждое предложение: подлежащее, сказуемое, падеж, род, число, порядок слов.
-2. Каждое предложение ДОЛЖНО быть ПОЛНЫМ и ЗАВЕРШЁННЫМ по смыслу. Нельзя обрезать предложение! Если для грамматической правильности нужно длинное предложение — пиши длинное. Длина НЕ ограничена.
-3. Неправильные варианты должны содержать ОДНУ ЯСНУЮ ошибку (неверный падеж, артикль, окончание, порядок слов). Не делай абсурдных вариантов.
-4. РОВНО ОДИН правильный ответ. Если два варианта грамматически верны — это брак.
-5. correct — индекс правильного ответа (0-3). Распределяй РАВНОМЕРНО по позициям.
-6. Все ${questionsCount} предложений УНИКАЛЬНЫ: разные подлежащие, глаголы, ситуации. Никакого однообразия.
-7. Используй живые, естественные предложения как в учебниках Schritte, Menschen, Aspekte.
+KRITISCHE REGELN (Verstoß = Ausschuss):
+1. Die korrekte Antwort MUSS grammatisch EINWANDFREI sein. Prüfe vor der Ausgabe jeden Satz: Subjekt, Prädikat, Kasus, Genus, Numerus, Wortstellung.
+2. Jeder Satz MUSS VOLLSTÄNDIG und SINNVOLL abgeschlossen sein. Kein Satz darf abgeschnitten werden! Wenn ein grammatisch korrekter Satz lang sein muss — schreibe ihn lang. Die Länge ist NICHT begrenzt.
+3. Falsche Optionen müssen EINEN KLAREN Fehler enthalten (falscher Kasus, Artikel, Endung, Wortstellung). Keine absurden Optionen.
+4. GENAU EINE korrekte Antwort. Wenn zwei Optionen grammatisch korrekt sind — ist die Übung Ausschuss.
+5. "correct" — Index der korrekten Antwort (0–3). GLEICHMÄSSIG über die Positionen verteilen.
+6. Alle ${questionsCount} Sätze EINZIGARTIG: verschiedene Subjekte, Verben, Situationen. Keine Eintönigkeit.
+7. Verwende lebendige, natürliche Sätze wie in den Lehrbüchern Schritte, Menschen, Aspekte.
 
 QUALITÄTSKONTROLLE — prüfe JEDE Übung BEVOR du sie ausgibst:
 1. Setze die korrekte Option in den Satz ein → ist er grammatisch PERFEKT? Kasus, Genus, Numerus, Konjugation, Wortstellung — alles korrekt?
@@ -167,7 +167,7 @@ QUALITÄTSKONTROLLE — prüfe JEDE Übung BEVOR du sie ausgibst:
 5. Sind die Sätze natürlich und vollständig?
 
 Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
-[{"text":"Инструкция на русском","display":"Deutscher Text","options":["A","B","C","D"],"correct":0}]`;
+[{"text":"Anweisung auf Russisch","display":"Deutscher Text","options":["A","B","C","D"],"correct":0}]`;
 
   try {
     const completion = await client.chat.completions.create({

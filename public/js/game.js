@@ -559,7 +559,7 @@ class Game {
         feedback = 'Верно! У вас уже есть щит.';
       } else {
         this.shieldCharges = 1;
-        this.shieldCooldownUntil = now + 120000;
+        this.shieldCooldownUntil = now + 60000;
         feedback = 'Верно! Щит от одного удара активирован.';
       }
     } else if (bonusType === 'timer') {
