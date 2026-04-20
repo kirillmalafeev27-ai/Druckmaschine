@@ -27,10 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const slotAssignments = Array(BONUS_SLOTS.length).fill(null);
   let pendingTutorialCallback = null;
 
-  const savedName = localStorage.getItem(PLAYER_NAME_KEY);
-  if (savedName) {
-    ui.playerName.value = savedName;
-  }
+  try {
+    const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+    if (savedName) {
+      ui.playerName.value = savedName;
+    }
+  } catch (_) {}
 
   renderLexicalGrid();
   renderSlots();
@@ -99,8 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) {
-      localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+    let tutorialSeen = false;
+    try { tutorialSeen = Boolean(localStorage.getItem(TUTORIAL_SEEN_KEY)); } catch (_) {}
+
+    if (!tutorialSeen) {
+      try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch (_) {}
       showTutorial(() => startGame(settings));
       return;
     }
@@ -188,6 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (game.state === 'direction_select') {
+      if (event.key === 'q' || event.key === 'Q') {
+        event.preventDefault();
+        game.rotateView(-1);
+        return;
+      }
+      if (event.key === 'e' || event.key === 'E') {
+        event.preventDefault();
+        game.rotateView(1);
+        return;
+      }
+
       const moveKeyMap = {
         ArrowUp: 'up',
         ArrowDown: 'down',
@@ -351,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const playerName = ui.playerName.value.trim() || 'Spieler';
-    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+    try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
 
     return {
       playerName,
@@ -371,11 +387,35 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to start the game:', error);
       game.destroy();
       setActiveScreen('menu-screen');
+      window.alert(buildStartErrorMessage(error));
     });
   }
 
   function showTutorial(onClose) {
     pendingTutorialCallback = onClose;
     ui.tutorialOverlay.classList.remove('hidden');
+  }
+
+  function buildStartErrorMessage(error) {
+    const rawMessage = error && error.message ? String(error.message) : '';
+    const normalizedMessage = rawMessage.toLowerCase();
+    const isCompatibilityError =
+      normalizedMessage.includes('allsettled') ||
+      normalizedMessage.includes('finally') ||
+      normalizedMessage.includes('entries') ||
+      normalizedMessage.includes('syntaxerror');
+    const isWebGlError =
+      normalizedMessage.includes('webgl') ||
+      normalizedMessage.includes('context');
+
+    if (isCompatibilityError) {
+      return 'Этот браузер слишком стар для запуска игры. Попробуйте обновить Safari или открыть игру в актуальном Chrome.';
+    }
+
+    if (isWebGlError) {
+      return 'Не удалось запустить 3D-сцену. На старых Mac это часто связано с WebGL или ограничениями старого Safari.';
+    }
+
+    return 'Игра не запустилась. На старых Mac проблема часто связана со старым Safari или отключённым WebGL.';
   }
 });

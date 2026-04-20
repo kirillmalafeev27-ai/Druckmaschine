@@ -4,14 +4,9 @@ const START_SAFE_TILES = [
   { x: 3, y: 7 },
   { x: 4, y: 7 }
 ];
-const DOOR_BLUEPRINT = [
-  { id: 'door-left-1', side: 'left', row: 1, approach: { x: 0, y: 1 } },
-  { id: 'door-left-2', side: 'left', row: 3, approach: { x: 0, y: 3 } },
-  { id: 'door-left-3', side: 'left', row: 5, approach: { x: 0, y: 5 } },
-  { id: 'door-right-1', side: 'right', row: 1, approach: { x: 7, y: 1 } },
-  { id: 'door-right-2', side: 'right', row: 3, approach: { x: 7, y: 3 } },
-  { id: 'door-right-3', side: 'right', row: 5, approach: { x: 7, y: 5 } }
-];
+const MIN_SAFE_DISTANCE = 4;
+const DOOR_COUNT = 6;
+const DOOR_MIN_SPACING = 2;
 const SCREEN_IDS = [
   'menu-screen',
   'game-screen',
@@ -61,7 +56,7 @@ class Leaderboard {
       }
       return left.durationMs - right.durationMs;
     });
-    localStorage.setItem(this.key, JSON.stringify(scores.slice(0, 20)));
+    try { localStorage.setItem(this.key, JSON.stringify(scores.slice(0, 20))); } catch (_) {}
   }
 
   render() {
@@ -126,11 +121,13 @@ class Game {
     this.questionsCorrect = 0;
     this.doorAttempts = 0;
     this.shieldCharges = 0;
+    this.shieldCooldownUntil = 0;
     this.currentSlotId = null;
     this.currentQuestion = null;
 
     this.hintDoorId = null;
     this.hintUntil = 0;
+    this.hintCooldownUntil = 0;
     this.timerRevealUntil = 0;
     this.messageTimeoutId = null;
     this.transitionTimeoutId = null;
@@ -180,21 +177,24 @@ class Game {
     };
   }
 
-  async init(settings) {
+  async init(settings, reuseQuestions = false) {
     this._disposeRuntime();
     this._clearTimeouts();
     this._applySettings(settings);
     this._resetRunState();
     this._setActiveScreen('game-screen');
-    this._showLoading('Загружаем комнату и упражнения...');
+    this._showLoading('Загружаем комнату...');
     this._hidePanels();
     this._hideDoorPrompt();
     this.ui.deathOverlay.classList.remove('active');
+    this.ui.deathOverlay.classList.remove('instant');
 
-    this.questionManager = new QuestionManager(this.langLevel);
-    this.questionManager.setLevel(this.langLevel);
-    this.questionManager.setLexicalTopic(this.lexicalTopic);
-    this.questionManager.configureSlots(this.slotConfigs);
+    if (!reuseQuestions || !this.questionManager) {
+      this.questionManager = new QuestionManager(this.langLevel);
+      this.questionManager.setLevel(this.langLevel);
+      this.questionManager.setLexicalTopic(this.lexicalTopic);
+      this.questionManager.configureSlots(this.slotConfigs);
+    }
 
     this.renderer = new CrusherRoomRenderer(this.ui.canvas);
     this.audio = new AudioManager();
@@ -206,10 +206,11 @@ class Game {
     this.player = { ...this.levelData.start };
     this.startedAt = performance.now();
 
-    await Promise.allSettled([
-      this.renderer.ensureModelsLoaded(),
-      this.questionManager.prefetchAll()
-    ]);
+    const loadTasks = [this.renderer.ensureModelsLoaded()];
+    if (!reuseQuestions || !this.questionManager) {
+      loadTasks.push(this.questionManager.prefetchAll());
+    }
+    await settleAll(loadTasks);
 
     this.renderer.buildLevel(this.levelData);
     this.renderer.setPlayerCell(this.player.x, this.player.y, true);
@@ -246,10 +247,12 @@ class Game {
     this.questionsCorrect = 0;
     this.doorAttempts = 0;
     this.shieldCharges = 0;
+    this.shieldCooldownUntil = 0;
     this.currentSlotId = null;
     this.currentQuestion = null;
     this.hintDoorId = null;
     this.hintUntil = 0;
+    this.hintCooldownUntil = 0;
     this.timerRevealUntil = 0;
     this.lastSafeState = null;
     this.lastDoorPromptId = null;
@@ -257,11 +260,8 @@ class Game {
   }
 
   _createLevelData(level) {
+    const doors = this._generateDoors();
     const safeTiles = this._generateSafeTiles(level);
-    const doors = DOOR_BLUEPRINT.map((door) => ({
-      ...door,
-      approach: { ...door.approach }
-    }));
     const correctDoor = doors[randomInt(0, doors.length - 1)];
 
     return {
@@ -274,64 +274,77 @@ class Game {
     };
   }
 
-  _generateSafeTiles(level) {
-    const safeTiles = [];
-    const blocked = new Set(START_SAFE_TILES.map((tile) => tileKey(tile.x, tile.y)));
-    const maxSafe = Math.max(4, 8 - Math.floor((level - 1) / 3));
-    const minSafe = Math.max(4, maxSafe - 2);
-    const targetCount = randomInt(minSafe, maxSafe);
+  _generateDoors() {
+    const candidates = [];
+    for (let col = 0; col < GRID_SIZE; col += 1) {
+      candidates.push({ side: 'north', col, row: 0, approach: { x: col, y: 0 } });
+    }
+    for (let row = 0; row < GRID_SIZE; row += 1) {
+      candidates.push({ side: 'west', col: 0, row, approach: { x: 0, y: row } });
+      candidates.push({ side: 'east', col: GRID_SIZE - 1, row, approach: { x: GRID_SIZE - 1, y: row } });
+    }
 
-    const addTile = (x, y) => {
-      if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
-        return false;
-      }
+    const shuffled = shuffleArray(candidates);
+    const chosen = [];
+    let index = 0;
 
-      const key = tileKey(x, y);
-      if (blocked.has(key)) {
-        return false;
-      }
-
-      blocked.add(key);
-      safeTiles.push({ x, y });
-      return true;
-    };
-
-    addTile(randomInt(1, 6), randomInt(1, 2));
-    addTile(randomInt(1, 6), randomInt(3, 5));
-
-    while (safeTiles.length < targetCount) {
-      let next = null;
-
-      if (safeTiles.length && Math.random() < 0.65) {
-        const anchor = safeTiles[randomInt(0, safeTiles.length - 1)];
-        const offsets = shuffleArray([
-          { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: 0, y: 1 },
-          { x: -1, y: -1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: 1, y: 1 },
-          { x: -2, y: 0 }, { x: 2, y: 0 }, { x: 0, y: -2 }, { x: 0, y: 2 }
-        ]);
-
-        next = offsets
-          .map((offset) => ({ x: anchor.x + offset.x, y: anchor.y + offset.y }))
-          .find((tile) => !blocked.has(tileKey(tile.x, tile.y)) && tile.x >= 0 && tile.x < GRID_SIZE && tile.y >= 0 && tile.y < GRID_SIZE);
-      }
-
-      if (!next) {
-        const freeTiles = [];
-        for (let y = 0; y < GRID_SIZE; y += 1) {
-          for (let x = 0; x < GRID_SIZE; x += 1) {
-            if (!blocked.has(tileKey(x, y))) {
-              freeTiles.push({ x, y });
-            }
-          }
-        }
-        next = freeTiles.length ? freeTiles[randomInt(0, freeTiles.length - 1)] : null;
-      }
-
-      if (!next) {
+    for (const cand of shuffled) {
+      if (chosen.length >= DOOR_COUNT) {
         break;
       }
 
-      addTile(next.x, next.y);
+      const tooClose = chosen.some((other) =>
+        Math.abs(other.approach.x - cand.approach.x) + Math.abs(other.approach.y - cand.approach.y) < DOOR_MIN_SPACING
+      );
+      if (tooClose) {
+        continue;
+      }
+
+      index += 1;
+      chosen.push({
+        id: `door-${cand.side}-${index}`,
+        side: cand.side,
+        col: cand.col,
+        row: cand.row,
+        approach: { x: cand.approach.x, y: cand.approach.y }
+      });
+    }
+
+    return chosen;
+  }
+
+  _generateSafeTiles(level) {
+    const safeTiles = [];
+    const placed = [...START_SAFE_TILES];
+    const targetCount = Math.max(3, 5 - Math.floor((level - 1) / 3));
+
+    const isFarEnough = (x, y) => {
+      for (const tile of placed) {
+        if (Math.abs(tile.x - x) + Math.abs(tile.y - y) < MIN_SAFE_DISTANCE) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const candidates = [];
+    for (let y = 0; y < GRID_SIZE; y += 1) {
+      for (let x = 0; x < GRID_SIZE; x += 1) {
+        if (!START_SAFE_TILES.some((tile) => tile.x === x && tile.y === y)) {
+          candidates.push({ x, y });
+        }
+      }
+    }
+
+    const shuffled = shuffleArray(candidates);
+    for (const tile of shuffled) {
+      if (safeTiles.length >= targetCount) {
+        break;
+      }
+      if (isFarEnough(tile.x, tile.y)) {
+        safeTiles.push(tile);
+        placed.push(tile);
+      }
     }
 
     return safeTiles;
@@ -341,8 +354,9 @@ class Game {
     const now = performance.now();
     this.crusher.phase = 'waiting';
     this.crusher.phaseStartedAt = now;
-    this.crusher.waitMs = (15 + Math.random() * 5) * 1000;
-    this.crusher.dropMs = Math.max(700, 1150 - (this.currentLevel - 1) * 35);
+    const baseWait = this.currentLevel <= 1 ? 22 : this.currentLevel <= 2 ? 17 : 12;
+    this.crusher.waitMs = (baseWait + 1 + Math.random() * 4) * 1000;
+    this.crusher.dropMs = (1 + 1 + Math.random()) * 1000;
     this.crusher.downMs = 850;
     this.crusher.riseMs = 900;
     this.crusher.nextDropAt = now + this.crusher.waitMs;
@@ -390,20 +404,36 @@ class Game {
       if (remaining <= 0) {
         this.crusher.phase = 'dropping';
         this.crusher.phaseStartedAt = now;
+        this.crusher.hitHead = false;
         this.audio.playCrusherStart();
-        this._showMessage('Давилка пошла вниз.', 1200);
+        this._showMessage('Давилка пошла вниз!', 1200);
       }
     }
 
     if (this.crusher.phase === 'dropping') {
       progress = clamp((now - this.crusher.phaseStartedAt) / this.crusher.dropMs, 0, 1);
       danger = 1;
+
+      const headProgress = this.renderer.getHeadCrushProgress();
+      if (!this.crusher.hitHead && progress >= headProgress && !this._isPlayerSafe()) {
+        this.crusher.hitHead = true;
+        if (this.shieldCharges > 0) {
+          this.shieldCharges -= 1;
+          this.audio.playShieldBreak();
+          this._updateStatusEffects();
+          this._showMessage('Щит спас от удара, но исчез.', 1800);
+        } else {
+          this.audio.playCrusherImpact();
+          this._lose('Давилка раздавила вас.', false);
+          return;
+        }
+      }
+
       if (progress >= 1) {
         this.crusher.phase = 'down';
         this.crusher.phaseStartedAt = now;
         this.audio.playCrusherImpact();
         this.renderer.shake(0.12, 450);
-        this._resolveCrusherImpact();
         progress = 1;
       }
     } else if (this.crusher.phase === 'down') {
@@ -425,26 +455,6 @@ class Game {
 
     this.renderer.setCrusherState(progress, this.crusher.phase, danger);
     this.audio.setCrusherDanger(danger);
-  }
-
-  _resolveCrusherImpact() {
-    if (this.state === 'won' || this.state === 'lost') {
-      return;
-    }
-
-    if (this._isPlayerSafe()) {
-      return;
-    }
-
-    if (this.shieldCharges > 0) {
-      this.shieldCharges -= 1;
-      this.audio.playShieldBreak();
-      this._updateStatusEffects();
-      this._showMessage('Щит спас от удара, но исчез.', 1800);
-      return;
-    }
-
-    this._lose('Давилка настигла вас вне безопасной зоны.');
   }
 
   _isPlayerSafe() {
@@ -489,8 +499,13 @@ class Game {
         if (this.state === 'won' || this.state === 'lost') {
           return;
         }
-        this.state = 'direction_select';
-        this._showDirectionPanel();
+        if (this.movesLeft > 0) {
+          this.state = 'direction_select';
+          this._showDirectionPanel();
+        } else {
+          this.state = 'topic_select';
+          this._showTopicPanel();
+        }
       }, 850);
       return;
     }
@@ -518,16 +533,39 @@ class Game {
       steps = 2;
       feedback = 'Верно! +2 хода.';
     } else if (bonusType === 'hint') {
-      this.hintDoorId = this.correctDoorId;
-      this.hintUntil = now + 6500;
-      this.renderer.setHintedDoor(this.correctDoorId);
-      feedback = 'Верно! +1 ход и подсказка по двери.';
+      steps = 0;
+      if (now < this.hintCooldownUntil) {
+        const remaining = Math.ceil((this.hintCooldownUntil - now) / 1000);
+        feedback = `Верно! Подсказка перезаряжается ещё ${remaining} c.`;
+      } else {
+        const wrongDoors = this.levelData.doors.filter((door) => door.id !== this.correctDoorId);
+        if (wrongDoors.length) {
+          const wrongDoor = wrongDoors[randomInt(0, wrongDoors.length - 1)];
+          this.hintDoorId = wrongDoor.id;
+          this.hintUntil = now + 6500;
+          this.hintCooldownUntil = now + 180000;
+          this.renderer.setHintedDoor(wrongDoor.id);
+          feedback = 'Верно! Подсказка: эта дверь неверная.';
+        } else {
+          feedback = 'Верно!';
+        }
+      }
     } else if (bonusType === 'shield') {
-      this.shieldCharges += 1;
-      feedback = 'Верно! +1 ход и щит от одного удара.';
+      steps = 0;
+      if (now < this.shieldCooldownUntil) {
+        const remaining = Math.ceil((this.shieldCooldownUntil - now) / 1000);
+        feedback = `Верно! Щит перезаряжается ещё ${remaining} c.`;
+      } else if (this.shieldCharges >= 1) {
+        feedback = 'Верно! У вас уже есть щит.';
+      } else {
+        this.shieldCharges = 1;
+        this.shieldCooldownUntil = now + 60000;
+        feedback = 'Верно! Щит от одного удара активирован.';
+      }
     } else if (bonusType === 'timer') {
+      steps = 0;
       this.timerRevealUntil = now + 8000;
-      feedback = 'Верно! +1 ход и временный таймер давилки.';
+      feedback = 'Верно! Временный таймер давилки активирован.';
     }
 
     this.movesLeft = steps;
@@ -576,6 +614,10 @@ class Game {
 
     this.renderer.nudgeYaw(direction);
     this._updateDoorPrompt();
+
+    if (this.state === 'direction_select') {
+      this._updateDirectionButtons();
+    }
   }
 
   tryUseDoor() {
@@ -637,7 +679,7 @@ class Game {
     }, 500);
   }
 
-  _lose(message) {
+  _lose(message, instant = false) {
     if (this.state === 'won' || this.state === 'lost') {
       return;
     }
@@ -648,6 +690,9 @@ class Game {
     this._hideDoorPrompt();
     this.audio.setCrusherDanger(0);
     this.ui.deathOverlay.classList.add('active');
+    if (instant) {
+      this.ui.deathOverlay.classList.add('instant');
+    }
     this._saveScore();
 
     const accuracy = this._getAccuracy();
@@ -655,12 +700,13 @@ class Game {
     this.ui.loseStats.textContent =
       `Уровень: ${this.currentLevel}. Точность: ${accuracy}%. Правильных ответов: ${this.questionsCorrect}/${this.questionsAnswered}.`;
 
+    const delay = instant ? 350 : 650;
     window.setTimeout(() => {
       if (this.renderer) {
         this.renderer.stopLoop();
       }
       this._setActiveScreen('lose-screen');
-    }, 650);
+    }, delay);
   }
 
   _saveScore() {
@@ -691,7 +737,7 @@ class Game {
   }
 
   restartLevel() {
-    this.init(this._buildSettings(this.currentLevel)).catch((error) => {
+    this.init(this._buildSettings(this.currentLevel), true).catch((error) => {
       console.error('Failed to restart level:', error);
     });
   }
@@ -835,7 +881,7 @@ class Game {
     }
 
     if (this.hintDoorId) {
-      container.appendChild(this._createStatusBadge('Подсказка по двери'));
+      container.appendChild(this._createStatusBadge('Подсказка: неверная дверь'));
     }
 
     if (this.timerRevealUntil > performance.now()) {
@@ -954,6 +1000,7 @@ class Game {
     this._hideLoading();
     this.ui.messageBanner.classList.add('hidden');
     this.ui.deathOverlay.classList.remove('active');
+    this.ui.deathOverlay.classList.remove('instant');
   }
 
   _disposeRuntime() {
