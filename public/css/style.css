@@ -406,6 +406,11 @@ input {
   opacity: 1;
 }
 
+#death-overlay.instant {
+  background: #000000;
+  transition: opacity 0.16s ease-in;
+}
+
 #message-banner {
   position: absolute;
   top: 72px;
