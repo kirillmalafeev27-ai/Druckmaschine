@@ -91,7 +91,7 @@ app.post('/api/generate-questions', async (req, res) => {
     return res.status(503).json({ error: 'AITUNNEL_API_KEY is not configured' });
   }
 
-  const questionsCount = count || 30;
+  const questionsCount = count || 10;
   const cacheKey = `${level}:${grammarTopic}:${lexicalTopic || ''}:${isWortstellung ? 'w' : 'g'}`;
 
   if (questionPool[cacheKey] && questionPool[cacheKey].length >= questionsCount) {

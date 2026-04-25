@@ -131,6 +131,7 @@ class QuestionManager {
 
     const pool = this.questionPool[slotId];
     if (!pool || pool.length === 0) {
+      this._ensurePool(slotId);
       return this._fallbackQuestion(slotConfig);
     }
 
@@ -211,7 +212,7 @@ class QuestionManager {
         lexicalTopic: this.lexicalTopic,
         grammarTopic: slotConfig.grammarTopic,
         isWortstellung: Boolean(slotConfig.slotDef.isWortstellung),
-        count: 30,
+        count: 10,
         exclude: seen
       })
     });

@@ -731,7 +731,7 @@ class Game {
   }
 
   nextLevel() {
-    this.init(this._buildSettings(this.currentLevel + 1)).catch((error) => {
+    this.init(this._buildSettings(this.currentLevel + 1), true).catch((error) => {
       console.error('Failed to load next level:', error);
     });
   }
