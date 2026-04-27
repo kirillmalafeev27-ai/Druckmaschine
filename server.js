@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,10 +9,23 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const client = new OpenAI({
-  apiKey: process.env.AITUNNEL_API_KEY,
-  baseURL: 'https://api.aitunnel.ru/v1',
-});
+const aitunnelClient = process.env.AITUNNEL_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.AITUNNEL_API_KEY,
+      baseURL: 'https://api.aitunnel.ru/v1',
+    })
+  : null;
+
+const anthropicClient = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+const AITUNNEL_MODELS = (process.env.AITUNNEL_MODELS || 'gpt-5.4,gpt-5,gpt-5-mini,gpt-4.1,gpt-4o,gpt-4o-mini')
+  .split(',')
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 
 const questionPool = {};
 
@@ -87,8 +101,8 @@ app.post('/api/generate-questions', async (req, res) => {
     return res.status(400).json({ error: 'level and grammarTopic are required' });
   }
 
-  if (!process.env.AITUNNEL_API_KEY) {
-    return res.status(503).json({ error: 'AITUNNEL_API_KEY is not configured' });
+  if (!aitunnelClient && !anthropicClient) {
+    return res.status(503).json({ error: 'No LLM API key configured (AITUNNEL_API_KEY or ANTHROPIC_API_KEY)' });
   }
 
   const questionsCount = count || 10;
@@ -169,20 +183,67 @@ QUALITÄTSKONTROLLE — prüfe JEDE Übung BEVOR du sie ausgibst:
 Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
 [{"text":"Anweisung auf Russisch","display":"Deutscher Text","options":["A","B","C","D"],"correct":0}]`;
 
-  try {
-    const completion = await client.chat.completions.create({
-      model: 'gpt-5.4',
-      max_completion_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
-    });
+  const errors = [];
+  let text = null;
 
-    const text = completion.choices[0].message.content.trim();
+  if (aitunnelClient) {
+    for (const model of AITUNNEL_MODELS) {
+      try {
+        const completion = await aitunnelClient.chat.completions.create({
+          model,
+          max_completion_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const content = completion.choices?.[0]?.message?.content;
+        if (content && content.trim()) {
+          text = content.trim();
+          break;
+        }
+        errors.push(`${model}: empty response`);
+      } catch (err) {
+        const detail = err?.message || String(err);
+        errors.push(`${model}: ${detail}`);
+        console.error(`AI Tunnel error on model ${model}:`, detail);
+      }
+    }
+  }
+
+  if (!text && anthropicClient) {
+    try {
+      const message = await anthropicClient.messages.create({
+        model: ANTHROPIC_MODEL,
+        max_tokens: 8192,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const block = message.content?.find((b) => b.type === 'text');
+      if (block && block.text) {
+        text = block.text.trim();
+      } else {
+        errors.push(`anthropic ${ANTHROPIC_MODEL}: empty response`);
+      }
+    } catch (err) {
+      const detail = err?.message || String(err);
+      errors.push(`anthropic ${ANTHROPIC_MODEL}: ${detail}`);
+      console.error('Anthropic fallback error:', detail);
+    }
+  }
+
+  if (!text) {
+    return res.status(502).json({ error: 'All LLM providers failed', detail: errors.join(' | ') });
+  }
+
+  try {
     let jsonStr = text;
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) jsonStr = jsonMatch[0];
 
     const parsed = JSON.parse(jsonStr);
     const valid = parsed.filter(isValidQuestion);
+
+    if (!valid.length) {
+      console.error('No valid questions parsed. Raw text:', text.slice(0, 500));
+      return res.status(502).json({ error: 'No valid questions in LLM response' });
+    }
 
     if (valid.length > questionsCount) {
       if (!questionPool[cacheKey]) questionPool[cacheKey] = [];
@@ -191,8 +252,8 @@ Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
 
     res.json({ questions: valid.slice(0, questionsCount) });
   } catch (err) {
-    console.error('AI Tunnel API error:', err.message);
-    res.status(500).json({ error: 'Failed to generate questions', detail: err.message });
+    console.error('JSON parse error:', err.message, 'Raw text:', text.slice(0, 500));
+    res.status(502).json({ error: 'Failed to parse LLM response', detail: err.message });
   }
 });
 
