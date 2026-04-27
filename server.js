@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const OpenAI = require('openai');
-const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,16 +15,10 @@ const aitunnelClient = process.env.AITUNNEL_API_KEY
     })
   : null;
 
-const anthropicClient = process.env.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  : null;
-
-const AITUNNEL_MODELS = (process.env.AITUNNEL_MODELS || 'gpt-5.4,gpt-5,gpt-5-mini,gpt-4.1,gpt-4o,gpt-4o-mini')
+const AITUNNEL_MODELS = (process.env.AITUNNEL_MODELS || 'gpt-5.4,gpt-5.2,gpt-5,gpt-5-mini,gpt-4o,gpt-4o-mini')
   .split(',')
   .map((m) => m.trim())
   .filter(Boolean);
-
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 
 const questionPool = {};
 
@@ -101,8 +94,8 @@ app.post('/api/generate-questions', async (req, res) => {
     return res.status(400).json({ error: 'level and grammarTopic are required' });
   }
 
-  if (!aitunnelClient && !anthropicClient) {
-    return res.status(503).json({ error: 'No LLM API key configured (AITUNNEL_API_KEY or ANTHROPIC_API_KEY)' });
+  if (!aitunnelClient) {
+    return res.status(503).json({ error: 'AITUNNEL_API_KEY is not configured' });
   }
 
   const questionsCount = count || 10;
@@ -186,50 +179,28 @@ Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
   const errors = [];
   let text = null;
 
-  if (aitunnelClient) {
-    for (const model of AITUNNEL_MODELS) {
-      try {
-        const completion = await aitunnelClient.chat.completions.create({
-          model,
-          max_completion_tokens: 8192,
-          messages: [{ role: 'user', content: prompt }],
-        });
-        const content = completion.choices?.[0]?.message?.content;
-        if (content && content.trim()) {
-          text = content.trim();
-          break;
-        }
-        errors.push(`${model}: empty response`);
-      } catch (err) {
-        const detail = err?.message || String(err);
-        errors.push(`${model}: ${detail}`);
-        console.error(`AI Tunnel error on model ${model}:`, detail);
-      }
-    }
-  }
-
-  if (!text && anthropicClient) {
+  for (const model of AITUNNEL_MODELS) {
     try {
-      const message = await anthropicClient.messages.create({
-        model: ANTHROPIC_MODEL,
+      const completion = await aitunnelClient.chat.completions.create({
+        model,
         max_tokens: 8192,
         messages: [{ role: 'user', content: prompt }],
       });
-      const block = message.content?.find((b) => b.type === 'text');
-      if (block && block.text) {
-        text = block.text.trim();
-      } else {
-        errors.push(`anthropic ${ANTHROPIC_MODEL}: empty response`);
+      const content = completion.choices?.[0]?.message?.content;
+      if (content && content.trim()) {
+        text = content.trim();
+        break;
       }
+      errors.push(`${model}: empty response`);
     } catch (err) {
       const detail = err?.message || String(err);
-      errors.push(`anthropic ${ANTHROPIC_MODEL}: ${detail}`);
-      console.error('Anthropic fallback error:', detail);
+      errors.push(`${model}: ${detail}`);
+      console.error(`AI Tunnel error on model ${model}:`, detail);
     }
   }
 
   if (!text) {
-    return res.status(502).json({ error: 'All LLM providers failed', detail: errors.join(' | ') });
+    return res.status(502).json({ error: 'AI Tunnel: all models failed', detail: errors.join(' | ') });
   }
 
   try {
