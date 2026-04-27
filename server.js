@@ -171,7 +171,7 @@ Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
 
   try {
     const completion = await client.chat.completions.create({
-      model: 'gpt-5.4',
+      model: 'gpt-5-4',
       max_completion_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     });
