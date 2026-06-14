@@ -80,8 +80,15 @@ app.get('/healthz', (req, res) => {
   res.json({ ok: true });
 });
 
+const DIFFICULTY_RULES = {
+  1: 'Schwierigkeit 1 (leicht): kurze, klare Sätze. Die falschen Optionen enthalten EINEN deutlichen, gut erkennbaren Fehler.',
+  2: 'Schwierigkeit 2 (mittel): normale Sätze. Die falschen Optionen sind plausibel, aber bei Aufmerksamkeit erkennbar.',
+  3: 'Schwierigkeit 3 (schwer): längere Sätze mit Nebeninformationen. Die falschen Optionen sind subtil und verlangen genaues Nachdenken.',
+  4: 'Schwierigkeit 4 (sehr schwer): anspruchsvolle, längere Sätze. Die falschen Optionen sind sehr trickreich (typische Fehlerquellen, fast richtig) — nur wer die Regel wirklich beherrscht, findet die richtige Antwort.'
+};
+
 app.post('/api/generate-questions', async (req, res) => {
-  const { level, lexicalTopic, grammarTopic, isWortstellung, count, exclude } = req.body;
+  const { level, lexicalTopic, grammarTopic, isWortstellung, difficulty, count, exclude } = req.body;
 
   if (!level || !grammarTopic) {
     return res.status(400).json({ error: 'level and grammarTopic are required' });
@@ -91,8 +98,10 @@ app.post('/api/generate-questions', async (req, res) => {
     return res.status(503).json({ error: 'AITUNNEL_API_KEY is not configured' });
   }
 
+  const difficultyTier = Math.min(4, Math.max(1, Number(difficulty) || 1));
+  const difficultyRule = DIFFICULTY_RULES[difficultyTier];
   const questionsCount = count || 30;
-  const cacheKey = `${level}:${grammarTopic}:${lexicalTopic || ''}:${isWortstellung ? 'w' : 'g'}`;
+  const cacheKey = `${level}:${grammarTopic}:${lexicalTopic || ''}:${isWortstellung ? 'w' : 'g'}:d${difficultyTier}`;
 
   if (questionPool[cacheKey] && questionPool[cacheKey].length >= questionsCount) {
     const cached = questionPool[cacheKey].splice(0, questionsCount);
@@ -148,6 +157,7 @@ ${topicRule ? `GRAMMATIKREGELN für "${grammarTopic}" — halte dich STRIKT dara
 ${taskDescription}
 
 GER-Niveau: ${level}. Halte dich STRIKT an dieses Niveau! Verwende KEINE Grammatik und KEINEN Wortschatz über ${level}.
+${difficultyRule}
 ${excludeNote}
 
 KRITISCHE REGELN (Verstoß = Ausschuss):

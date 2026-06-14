@@ -60,14 +60,6 @@ const LEXICAL_TOPICS = [
   'Medien und Technik'
 ];
 
-const BONUS_SLOTS = [
-  { id: 'wortstellung', bonus: 'move2', bonusLabel: '2 хода', isWortstellung: true, fixed: true },
-  { id: 'step', bonus: 'move1', bonusLabel: '+1 ход' },
-  { id: 'hint', bonus: 'hint', bonusLabel: 'Подсказка' },
-  { id: 'shield', bonus: 'shield', bonusLabel: 'Щит' },
-  { id: 'timer', bonus: 'timer', bonusLabel: 'Таймер' }
-];
-
 function shuffleArray(items) {
   const copy = [...items];
   for (let index = copy.length - 1; index > 0; index -= 1) {
@@ -77,137 +69,87 @@ function shuffleArray(items) {
   return copy;
 }
 
+// Pools are keyed by difficulty tier (1..4). Each fetch pulls a batch for one
+// tier and a random grammar topic from the selected list.
 class QuestionManager {
-  constructor(level = 'A2') {
-    this.level = level;
+  constructor() {
+    this.level = 'A2';
     this.lexicalTopic = null;
-    this.questionPool = Object.create(null);
+    this.grammarTopics = ['Artikel'];
+    this.pools = Object.create(null);
     this.fetching = Object.create(null);
-    this.slots = [];
-    this.lastQuestion = null;
-    this.usedDisplays = Object.create(null);
+    this.usedDisplays = new Set();
   }
 
-  setLevel(level) {
-    if (this.level !== level) {
-      this.level = level;
-      this.questionPool = Object.create(null);
-      this.fetching = Object.create(null);
-      this.usedDisplays = Object.create(null);
-      this.lastQuestion = null;
-    }
+  configure({ level, lexicalTopic, grammarTopics }) {
+    this.level = level || 'A2';
+    this.lexicalTopic = lexicalTopic || null;
+    this.grammarTopics = (grammarTopics && grammarTopics.length) ? grammarTopics : ['Artikel'];
+    this.pools = Object.create(null);
+    this.fetching = Object.create(null);
+    this.usedDisplays = new Set();
   }
 
-  setLexicalTopic(topic) {
-    if (this.lexicalTopic !== topic) {
-      this.lexicalTopic = topic;
-      this.questionPool = Object.create(null);
-      this.fetching = Object.create(null);
-      this.usedDisplays = Object.create(null);
-      this.lastQuestion = null;
-    }
+  prefetch(tiers = [1, 2]) {
+    return Promise.allSettled(tiers.map((tier) => this._ensurePool(tier)));
   }
 
-  configureSlots(slotConfigs) {
-    this.slots = slotConfigs.filter(Boolean);
-  }
+  // Returns a formatted question for the given difficulty tier, or a fallback.
+  async getQuestion(tier) {
+    await this._ensurePool(tier);
+    const pool = this.pools[tier];
 
-  async prefetchAll() {
-    const tasks = this.slots.map((slot) => this._ensurePool(slot.slotDef.id));
-    await Promise.allSettled(tasks);
-  }
-
-  shuffleAllPools() {
-    for (const slotId of Object.keys(this.questionPool)) {
-      this.questionPool[slotId] = shuffleArray(this.questionPool[slotId]);
-    }
-  }
-
-  getQuestion(slotId) {
-    const slotConfig = this.slots.find((slot) => slot.slotDef.id === slotId);
-    if (!slotConfig) {
-      return null;
-    }
-
-    const pool = this.questionPool[slotId];
     if (!pool || pool.length === 0) {
-      return this._fallbackQuestion(slotConfig);
+      return this._fallbackQuestion(tier);
     }
 
-    const rawQuestion = pool.shift();
-    this.lastQuestion = { slotId, question: rawQuestion };
+    const raw = pool.shift();
+    this.usedDisplays.add(raw.display);
 
-    if (pool.length === 0) {
-      this._ensurePool(slotId);
+    if (pool.length <= 2) {
+      this._ensurePool(tier); // top up in background
     }
 
-    return this._formatQuestion(rawQuestion, slotConfig);
+    return this._formatQuestion(raw, tier);
   }
 
-  onCorrectAnswer(slotId) {
-    if (this.lastQuestion && this.lastQuestion.slotId === slotId) {
-      const set = this.usedDisplays[slotId] || new Set();
-      set.add(this.lastQuestion.question.display);
-      this.usedDisplays[slotId] = set;
-      this.lastQuestion = null;
-    }
-
-    if (!this.questionPool[slotId] || this.questionPool[slotId].length === 0) {
-      this._ensurePool(slotId);
-    }
+  _randomGrammarTopic() {
+    return this.grammarTopics[Math.floor(Math.random() * this.grammarTopics.length)];
   }
 
-  onWrongAnswer(slotId) {
-    if (!this.lastQuestion || this.lastQuestion.slotId !== slotId) {
-      return;
+  async _ensurePool(tier) {
+    if (this.fetching[tier]) {
+      return this.fetching[tier];
     }
-
-    const pool = this.questionPool[slotId] || [];
-    const position = Math.floor(Math.random() * (pool.length + 1));
-    pool.splice(position, 0, this.lastQuestion.question);
-    this.questionPool[slotId] = pool;
-    this.lastQuestion = null;
-  }
-
-  async _ensurePool(slotId) {
-    if (this.fetching[slotId]) {
-      return this.fetching[slotId];
-    }
-
-    const pool = this.questionPool[slotId];
-    if (pool && pool.length > 0) {
+    const pool = this.pools[tier];
+    if (pool && pool.length > 2) {
       return pool;
     }
 
-    const slotConfig = this.slots.find((slot) => slot.slotDef.id === slotId);
-    if (!slotConfig) {
-      return [];
-    }
-
-    this.fetching[slotId] = this._fetchQuestions(slotConfig)
+    this.fetching[tier] = this._fetchQuestions(tier)
       .catch((error) => {
-        console.warn(`Не удалось загрузить вопросы для слота ${slotId}:`, error);
+        console.warn(`Не удалось загрузить вопросы (tier ${tier}):`, error);
         return [];
       })
       .finally(() => {
-        delete this.fetching[slotId];
+        delete this.fetching[tier];
       });
 
-    return this.fetching[slotId];
+    return this.fetching[tier];
   }
 
-  async _fetchQuestions(slotConfig) {
-    const slotId = slotConfig.slotDef.id;
-    const seen = Array.from(this.usedDisplays[slotId] || []).slice(-12);
+  async _fetchQuestions(tier) {
+    const grammarTopic = this._randomGrammarTopic();
+    const seen = Array.from(this.usedDisplays).slice(-12);
     const response = await fetch('/api/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         level: this.level,
         lexicalTopic: this.lexicalTopic,
-        grammarTopic: slotConfig.grammarTopic,
-        isWortstellung: Boolean(slotConfig.slotDef.isWortstellung),
-        count: 30,
+        grammarTopic,
+        difficulty: tier,
+        count: 12,
         exclude: seen
       })
     });
@@ -217,13 +159,14 @@ class QuestionManager {
     }
 
     const data = await response.json();
-    const valid = (data.questions || []).filter((question) => this._isValidQuestion(question));
+    const valid = (data.questions || []).filter((q) => this._isValidQuestion(q));
     if (!valid.length) {
-      return [];
+      return this.pools[tier] || [];
     }
 
-    const pool = [...(this.questionPool[slotId] || []), ...shuffleArray(valid)];
-    this.questionPool[slotId] = pool;
+    valid.forEach((q) => { q.grammarTopic = grammarTopic; });
+    const pool = [...(this.pools[tier] || []), ...shuffleArray(valid)];
+    this.pools[tier] = pool;
     return pool;
   }
 
@@ -240,17 +183,16 @@ class QuestionManager {
     );
   }
 
-  _formatQuestion(rawQuestion, slotConfig) {
-    const correctAnswer = rawQuestion.options[rawQuestion.correct];
-    const shuffledOptions = shuffleArray(rawQuestion.options);
+  _formatQuestion(raw, tier) {
+    const correctAnswer = raw.options[raw.correct];
+    const shuffledOptions = shuffleArray(raw.options);
 
     return {
-      slotId: slotConfig.slotDef.id,
-      slotDef: slotConfig.slotDef,
-      grammarTopic: slotConfig.grammarTopic,
+      tier,
+      grammarTopic: raw.grammarTopic || this._randomGrammarTopic(),
       level: this.level,
-      text: rawQuestion.text,
-      display: rawQuestion.display,
+      text: raw.text,
+      display: raw.display,
       options: {
         options: shuffledOptions,
         correctIndex: shuffledOptions.indexOf(correctAnswer)
@@ -258,14 +200,13 @@ class QuestionManager {
     };
   }
 
-  _fallbackQuestion(slotConfig) {
+  _fallbackQuestion(tier) {
     return {
-      slotId: slotConfig.slotDef.id,
-      slotDef: slotConfig.slotDef,
-      grammarTopic: slotConfig.grammarTopic,
+      tier,
+      grammarTopic: this._randomGrammarTopic(),
       level: this.level,
       text: 'Резервное упражнение',
-      display: 'Сервер вопросов временно недоступен. Нажмите OK, чтобы получить бонус и не останавливать игру.',
+      display: 'Сервер вопросов временно недоступен. Нажмите OK, чтобы продолжить спуск.',
       options: {
         options: ['OK', 'Пауза', 'Ошибка', 'Назад'],
         correctIndex: 0
