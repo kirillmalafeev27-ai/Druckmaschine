@@ -1,6 +1,7 @@
-// Minecraft-style voxel mine. Everything is procedural: pixel-art textures are
-// painted to 16x16 canvases (nearest-filter for crisp pixels) and mapped onto
-// cubes. A blocky avatar descends a shaft in third person, swinging a pickaxe.
+// Minecraft-style underground mine. Procedural pixel-art textures on cubes, a
+// blocky third-person avatar that descends a dungeon shaft. Terrain grows more
+// exotic with depth (dirt -> stone -> deepslate -> obsidian -> amethyst ->
+// bedrock) and is dressed with lava, water, crystals and cave openings.
 
 const BLOCK = 1;
 const SHAFT_HALF = 2;       // perimeter at |x|==2 or |z|==2, interior 3x3 open
@@ -9,12 +10,10 @@ const STAND = 0.0;          // avatar feet sit at y = -depth + STAND
 // ---------- Pixel-art texture factory ----------
 const TextureFactory = {
   cache: {},
-
   _make(key, draw) {
     if (this.cache[key]) return this.cache[key];
     const canvas = document.createElement('canvas');
-    canvas.width = 16;
-    canvas.height = 16;
+    canvas.width = 16; canvas.height = 16;
     const ctx = canvas.getContext('2d');
     draw(ctx);
     const tex = new THREE.CanvasTexture(canvas);
@@ -24,88 +23,95 @@ const TextureFactory = {
     this.cache[key] = tex;
     return tex;
   },
-
   _noise(ctx, shades) {
-    for (let y = 0; y < 16; y += 1) {
-      for (let x = 0; x < 16; x += 1) {
-        ctx.fillStyle = shades[Math.floor(Math.random() * shades.length)];
-        ctx.fillRect(x, y, 1, 1);
-      }
+    for (let y = 0; y < 16; y += 1) for (let x = 0; x < 16; x += 1) {
+      ctx.fillStyle = shades[Math.floor(Math.random() * shades.length)];
+      ctx.fillRect(x, y, 1, 1);
     }
   },
-
-  _speckle(ctx, mineralShades, clusters) {
-    for (let c = 0; c < clusters; c += 1) {
-      const cx = 2 + Math.floor(Math.random() * 12);
-      const cy = 2 + Math.floor(Math.random() * 12);
-      const blobs = 3 + Math.floor(Math.random() * 3);
-      for (let b = 0; b < blobs; b += 1) {
-        const x = Math.max(0, Math.min(15, cx + Math.floor((Math.random() - 0.5) * 4)));
-        const y = Math.max(0, Math.min(15, cy + Math.floor((Math.random() - 0.5) * 4)));
-        ctx.fillStyle = mineralShades[Math.floor(Math.random() * mineralShades.length)];
-        ctx.fillRect(x, y, 1, 1);
-      }
+  _speckle(ctx, shades, n) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = shades[Math.floor(Math.random() * shades.length)];
+      ctx.fillRect(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), 1, 1);
     }
   },
 
   grassTop() { return this._make('grassTop', (c) => this._noise(c, ['#5fae3f', '#6abe4f', '#56a338', '#74c95a'])); },
   grassSide() {
     return this._make('grassSide', (c) => {
-      this._noise(c, ['#8b6b4a', '#946f4d', '#7e5f40', '#82623f']);
-      for (let x = 0; x < 16; x += 1) {
-        for (let y = 0; y < 4 + Math.floor(Math.random() * 2); y += 1) {
-          c.fillStyle = ['#5fae3f', '#6abe4f', '#56a338'][Math.floor(Math.random() * 3)];
-          c.fillRect(x, y, 1, 1);
-        }
+      this._noise(c, ['#8b6b4a', '#946f4d', '#7e5f40']);
+      for (let x = 0; x < 16; x += 1) for (let y = 0; y < 4; y += 1) {
+        c.fillStyle = ['#5fae3f', '#6abe4f'][Math.floor(Math.random() * 2)];
+        c.fillRect(x, y, 1, 1);
       }
+    });
+  },
+  bricks() {
+    return this._make('bricks', (c) => {
+      this._noise(c, ['#6f6a62', '#7a756c', '#646058']);
+      c.fillStyle = '#3f3b35';
+      for (let y = 0; y <= 16; y += 4) c.fillRect(0, y, 16, 1);
+      for (let y = 0; y < 16; y += 8) { c.fillRect(4, y, 1, 4); c.fillRect(12, y, 1, 4); }
+      for (let y = 4; y < 16; y += 8) { c.fillRect(8, y, 1, 4); }
     });
   },
   dirt() { return this._make('dirt', (c) => this._noise(c, ['#8b6b4a', '#946f4d', '#7e5f40', '#82623f'])); },
   stone() { return this._make('stone', (c) => this._noise(c, ['#8a8a8a', '#949494', '#828282', '#7c7c7c'])); },
   cobble() {
     return this._make('cobble', (c) => {
-      this._noise(c, ['#8a8a8a', '#777777', '#6f6f6f', '#9a9a9a']);
-      for (let i = 0; i < 6; i += 1) {
-        c.fillStyle = '#5e5e5e';
-        c.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2);
-      }
+      this._noise(c, ['#8a8a8a', '#777', '#6f6f6f', '#9a9a9a']);
+      for (let i = 0; i < 6; i += 1) { c.fillStyle = '#5e5e5e'; c.fillRect(Math.floor(Math.random() * 14), Math.floor(Math.random() * 14), 2, 2); }
     });
   },
+  andesite() { return this._make('andesite', (c) => this._noise(c, ['#7e8a8f', '#8d989c', '#727d82', '#9aa4a8'])); },
   deepslate() { return this._make('deepslate', (c) => this._noise(c, ['#48464f', '#403e47', '#514f59', '#393740'])); },
+  obsidian() {
+    return this._make('obsidian', (c) => {
+      this._noise(c, ['#17121f', '#1d1726', '#120e18', '#241c30']);
+      this._speckle(c, ['#5a3f8a', '#7a52c0'], 10);
+    });
+  },
+  amethyst() {
+    return this._make('amethyst', (c) => {
+      this._noise(c, ['#5a3f8a', '#6b4aa0', '#4a3275', '#7e5cc0']);
+      this._speckle(c, ['#b58cff', '#d6b8ff'], 14);
+    });
+  },
+  bedrock() { return this._make('bedrock', (c) => this._noise(c, ['#2a2730', '#201d26', '#34313c', '#171520'])); },
   planks() {
     return this._make('planks', (c) => {
       this._noise(c, ['#9a6b38', '#a87a45', '#8c5f30', '#b3854f']);
-      c.fillStyle = '#6e4a24';
-      for (let y = 0; y < 16; y += 4) c.fillRect(0, y, 16, 1);
+      c.fillStyle = '#6e4a24'; for (let y = 0; y < 16; y += 4) c.fillRect(0, y, 16, 1);
     });
   },
-  ore(name, base, mineral, clusters) {
-    return this._make('ore_' + name, (c) => {
-      this._noise(c, base);
-      this._speckle(c, mineral, clusters);
+  lava() {
+    return this._make('lava', (c) => {
+      this._noise(c, ['#ff7b1a', '#ff9b2a', '#e85a0c', '#ffc14a']);
+      this._speckle(c, ['#fff0a0', '#c83a06'], 18);
     });
-  }
+  },
+  water() { return this._make('water', (c) => this._noise(c, ['#2a6bd0', '#3f7be0', '#235ab0', '#4f8bf0'])); }
 };
 
-const STONE_SHADES = ['#8a8a8a', '#949494', '#828282', '#7c7c7c'];
-const DEEP_SHADES = ['#48464f', '#403e47', '#514f59', '#393740'];
-
-// Ore appearance by tier (1..5): texture + optional emissive glow.
-const ORE_TIERS_GFX = {
-  1: { tex: () => TextureFactory.ore('coal', STONE_SHADES, ['#2a2a2a', '#1c1c1c', '#363636'], 3), emissive: 0x000000, glow: 0 },
-  2: { tex: () => TextureFactory.ore('iron', STONE_SHADES, ['#caa07e', '#b98a64', '#d9b48f'], 3), emissive: 0x000000, glow: 0 },
-  3: { tex: () => TextureFactory.ore('gold', STONE_SHADES, ['#f4c542', '#ffd95a', '#c9971f'], 4), emissive: 0x4a3300, glow: 0.7 },
-  4: { tex: () => TextureFactory.ore('lapis', STONE_SHADES, ['#2f5bd6', '#3f6bf0', '#1f3fa0'], 4), emissive: 0x0a1f6b, glow: 0.9 },
-  5: { tex: () => TextureFactory.ore('diamond', DEEP_SHADES, ['#6cf0e4', '#8ff7ee', '#3fd0c4'], 5), emissive: 0x0c5a52, glow: 1.2 }
-};
+// Depth bands: which wall texture, from the surface down to bedrock.
+const DEPTH_BANDS = [
+  { upTo: 4, tex: 'dirt' },
+  { upTo: 9, tex: 'stone' },
+  { upTo: 14, tex: 'cobble' },
+  { upTo: 19, tex: 'andesite' },
+  { upTo: 24, tex: 'deepslate' },
+  { upTo: 30, tex: 'obsidian' },
+  { upTo: 36, tex: 'amethyst' },
+  { upTo: 999, tex: 'bedrock' }
+];
 
 class MineRenderer {
   constructor(canvas) {
     this.canvas = canvas;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x8ec5ff);
-    this.scene.fog = new THREE.Fog(0x2a2738, 8, 26);
+    this.scene.background = new THREE.Color(0x0c0a12);   // dark dungeon, no blue sky
+    this.scene.fog = new THREE.Fog(0x0c0a12, 7, 26);
 
     this.camera = new THREE.PerspectiveCamera(64, window.innerWidth / window.innerHeight, 0.1, 200);
     this.scene.add(this.camera);
@@ -119,10 +125,9 @@ class MineRenderer {
     this.scene.add(this.rootGroup);
 
     this.blockGeo = new THREE.BoxGeometry(BLOCK, BLOCK, BLOCK);
-    this.frontFaces = {};
-    this.oreLights = [];
+    this.dynamicLights = [];
     this.debris = [];
-    this.clouds = [];
+    this.goldBurst = [];
 
     this.depth = 0;
     this.playerY = STAND;
@@ -135,6 +140,7 @@ class MineRenderer {
     this.swingStart = -1;
     this.shakeUntil = 0;
     this.shakeStrength = 0;
+    this.chestOpenStart = -1;
 
     this.orbitYaw = 0;
     this.targetOrbitYaw = 0;
@@ -154,99 +160,75 @@ class MineRenderer {
   ensureReady() { return Promise.resolve(); }
 
   _setupLights() {
-    this.scene.add(new THREE.HemisphereLight(0xcfe6ff, 0x3a2c1e, 0.5));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 0.55);
-    sun.position.set(6, 26, 8);
-    this.scene.add(sun);
+    this.scene.add(new THREE.HemisphereLight(0x3a3550, 0x141019, 0.35));
 
-    // Warm head lamp on the avatar so deep blocks stay lit and contrasty.
-    this.headLamp = new THREE.PointLight(0xffe6b8, 1.15, 11, 2);
+    // Soft light spilling down from the dungeon entrance.
+    this.entranceLight = new THREE.PointLight(0xbcd0ff, 0.8, 14, 2);
+    this.entranceLight.position.set(0, 3, 1);
+    this.scene.add(this.entranceLight);
+
+    // Warm head lamp on the avatar so the working face stays lit.
+    this.headLamp = new THREE.PointLight(0xffe6b8, 1.3, 12, 2);
     this.scene.add(this.headLamp);
   }
 
-  _mat(tex) { return new THREE.MeshLambertMaterial({ map: tex }); }
+  _mat(texName) { return new THREE.MeshLambertMaterial({ map: TextureFactory[texName]() }); }
 
-  _grassMats() {
-    const side = this._mat(TextureFactory.grassSide());
-    const top = this._mat(TextureFactory.grassTop());
-    const bottom = this._mat(TextureFactory.dirt());
-    return [side, side, top, bottom, side, side];
-  }
-
-  _wallTexForRow(row) {
-    if (row <= 2) return TextureFactory.dirt();
-    if (row <= 4) return TextureFactory.stone();
-    if (row <= 6) return TextureFactory.cobble();
-    if (row <= 8) return TextureFactory.deepslate();
-    return TextureFactory.deepslate();
+  _bandTexFor(row) {
+    const band = DEPTH_BANDS.find((b) => row <= b.upTo) || DEPTH_BANDS[DEPTH_BANDS.length - 1];
+    return band.tex;
   }
 
   buildShaft(maxFloors) {
     this.maxFloors = maxFloors;
     this._clear();
 
-    // Grass field around the opening. The front side (toward the camera) is
-    // left open so the shaft reads as a clean cross-section / diorama.
+    // Dungeon entrance rim (stone bricks, not grass) — front side left open.
+    const brickMat = this._mat('bricks');
     for (let x = -SHAFT_HALF - 2; x <= SHAFT_HALF + 2; x += 1) {
       for (let z = -SHAFT_HALF - 2; z <= SHAFT_HALF + 2; z += 1) {
-        if (z >= SHAFT_HALF) continue; // open front
+        if (z >= SHAFT_HALF) continue;
         const isOpening = Math.abs(x) <= SHAFT_HALF - 1 && z >= -SHAFT_HALF + 1;
         if (isOpening) continue;
-        const mesh = new THREE.Mesh(this.blockGeo, this._grassMats());
+        const mesh = new THREE.Mesh(this.blockGeo, brickMat);
         mesh.position.set(x, 0, z);
         this.rootGroup.add(mesh);
       }
     }
 
-    // Shaft walls, textured by depth band. The south wall (z === SHAFT_HALF,
-    // nearest the camera) is skipped so we can see inside.
+    // Shaft walls (south wall toward camera left open for the cross-section).
     for (let row = 1; row <= maxFloors; row += 1) {
-      const wallMat = this._mat(this._wallTexForRow(row));
+      const wallMat = this._mat(this._bandTexFor(row));
       for (let x = -SHAFT_HALF; x <= SHAFT_HALF; x += 1) {
         for (let z = -SHAFT_HALF; z <= SHAFT_HALF; z += 1) {
           if (Math.abs(x) !== SHAFT_HALF && Math.abs(z) !== SHAFT_HALF) continue;
-          if (z === SHAFT_HALF) continue; // open cutaway toward camera
+          if (z === SHAFT_HALF) continue;
           const mesh = new THREE.Mesh(this.blockGeo, wallMat);
           mesh.position.set(x, -row, z);
           this.rootGroup.add(mesh);
-          if (x === 0 && z === -SHAFT_HALF) this.frontFaces[row] = mesh;
         }
       }
+      this._maybeFeature(row);
     }
 
-    // Wooden ladder on the east wall (visible, doesn't block the hero shot).
-    const ladderMat = this._mat(TextureFactory.planks());
+    // Ladder on the east wall.
+    const ladderMat = this._mat('planks');
     for (let row = 0; row <= maxFloors; row += 1) {
       const rung = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.7), ladderMat);
       rung.position.set(SHAFT_HALF - 0.45, -row + 0.3, 0);
       this.rootGroup.add(rung);
     }
 
-    // Torches every few floors for that lit-cave feel (off the ladder and ore).
-    for (let row = 2; row <= maxFloors; row += 3) {
-      this._addTorch(-SHAFT_HALF + 0.45, -row + 0.2, 0);
-      this._addTorch(SHAFT_HALF - 0.45, -row + 0.2, -1.2);
-    }
-
-    // The plank platform the avatar stands on (moves down with the player).
+    // Plank platform + treasure chest the avatar carries (moves with player).
     this.platform = new THREE.Group();
-    for (let x = -1; x <= 1; x += 1) {
-      for (let z = -1; z <= 1; z += 1) {
-        const plank = new THREE.Mesh(new THREE.BoxGeometry(1, 0.18, 1), ladderMat);
-        plank.position.set(x, -0.1, z);
-        this.platform.add(plank);
-      }
+    for (let x = -1; x <= 1; x += 1) for (let z = -1; z <= 1; z += 1) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(1, 0.18, 1), ladderMat);
+      plank.position.set(x, -0.1, z);
+      this.platform.add(plank);
     }
+    this._buildChest();
+    this.platform.add(this.chest);
     this.rootGroup.add(this.platform);
-
-    // A few clouds drifting in the sky.
-    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    for (let i = 0; i < 5; i += 1) {
-      const cloud = new THREE.Mesh(new THREE.BoxGeometry(3 + Math.random() * 2, 0.6, 2), cloudMat);
-      cloud.position.set((Math.random() - 0.5) * 26, 11 + Math.random() * 4, (Math.random() - 0.5) * 26);
-      this.rootGroup.add(cloud);
-      this.clouds.push(cloud);
-    }
 
     this.depth = 0;
     this.playerY = STAND;
@@ -254,23 +236,95 @@ class MineRenderer {
     this.orbitYaw = 0; this.targetOrbitYaw = 0;
   }
 
-  _addTorch(x, y, z) {
-    const group = new THREE.Group();
-    const stick = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), this._mat(TextureFactory.planks()));
-    stick.position.y = -0.1;
-    const flame = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.16, 0.16),
-      new THREE.MeshBasicMaterial({ color: 0xffb030 })
-    );
-    flame.position.y = 0.16;
-    group.add(stick, flame);
-    group.position.set(x, y, z);
-    this.rootGroup.add(group);
+  _maybeFeature(row) {
+    if (row < 4 || Math.random() > 0.5) return;
 
-    const light = new THREE.PointLight(0xffa030, 0.8, 7, 2);
-    light.position.set(x, y + 0.2, z);
-    this.rootGroup.add(light);
-    this.oreLights.push(light);
+    let pool;
+    if (row <= 14) pool = ['water', 'cave', 'crystal'];
+    else if (row <= 24) pool = ['cave', 'crystal', 'water', 'lava'];
+    else pool = ['lava', 'crystal', 'cave', 'lava'];
+    const type = pool[Math.floor(Math.random() * pool.length)];
+
+    // Pick a wall: east, west, or north (never the open south).
+    const walls = [
+      { axis: 'x', sign: 1 }, { axis: 'x', sign: -1 }, { axis: 'z', sign: -1 }
+    ];
+    const w = walls[Math.floor(Math.random() * walls.length)];
+    const lateral = [-1, 0, 1][Math.floor(Math.random() * 3)];
+    const inset = SHAFT_HALF - 0.52;
+    const pos = new THREE.Vector3();
+    if (w.axis === 'x') pos.set(w.sign * inset, -row, lateral);
+    else pos.set(lateral, -row, -inset);
+
+    if (type === 'cave') {
+      // Unlit black slab fakes an opening into darkness.
+      const geo = w.axis === 'x' ? new THREE.BoxGeometry(0.1, 0.95, 0.95) : new THREE.BoxGeometry(0.95, 0.95, 0.1);
+      const slab = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x050308 }));
+      slab.position.copy(pos);
+      this.rootGroup.add(slab);
+    } else if (type === 'water' || type === 'lava') {
+      const isLava = type === 'lava';
+      const geo = w.axis === 'x' ? new THREE.BoxGeometry(0.1, 0.95, 0.95) : new THREE.BoxGeometry(0.95, 0.95, 0.1);
+      const mat = isLava
+        ? new THREE.MeshBasicMaterial({ map: TextureFactory.lava() })
+        : new THREE.MeshLambertMaterial({ map: TextureFactory.water(), transparent: true, opacity: 0.7 });
+      const slab = new THREE.Mesh(geo, mat);
+      slab.position.copy(pos);
+      this.rootGroup.add(slab);
+      if (isLava) {
+        const light = new THREE.PointLight(0xff7a1a, 1.0, 6, 2);
+        light.position.copy(pos);
+        this.rootGroup.add(light);
+        this.dynamicLights.push(light);
+      }
+    } else if (type === 'crystal') {
+      const color = row > 24 ? 0xb58cff : row > 14 ? 0x6cf0e4 : 0x8fe3ff;
+      const cluster = new THREE.Group();
+      for (let i = 0; i < 3; i += 1) {
+        const s = 0.12 + Math.random() * 0.16;
+        const shard = new THREE.Mesh(
+          new THREE.BoxGeometry(s, s + 0.2, s),
+          new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.9 })
+        );
+        shard.position.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.5);
+        shard.rotation.set(Math.random(), Math.random(), Math.random());
+        cluster.add(shard);
+      }
+      cluster.position.copy(pos);
+      this.rootGroup.add(cluster);
+      const light = new THREE.PointLight(color, 0.7, 5, 2);
+      light.position.copy(pos);
+      this.rootGroup.add(light);
+      this.dynamicLights.push(light);
+    }
+  }
+
+  _buildChest() {
+    this.chest = new THREE.Group();
+    const wood = new THREE.MeshLambertMaterial({ color: 0x6b4a24 });
+    const gold = new THREE.MeshLambertMaterial({ color: 0xf4c542, emissive: 0x3a2a00, emissiveIntensity: 0.4 });
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.42, 0.5), wood);
+    base.position.y = 0.21;
+    this.chest.add(base);
+
+    this.chestLid = new THREE.Group();
+    this.chestLid.position.set(0, 0.42, -0.25);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.2, 0.52), wood);
+    lid.position.set(0, 0.0, 0.25);
+    this.chestLid.add(lid);
+    const latch = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.06), gold);
+    latch.position.set(0, -0.02, 0.51);
+    this.chestLid.add(latch);
+    this.chest.add(this.chestLid);
+
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.06, 0.54), gold);
+    trim.position.y = 0.42;
+    this.chest.add(trim);
+
+    this.chest.position.set(0, 0, -0.55);
+    this.chest.rotation.y = 0;
+    this.chestLidRest = this.chestLid.rotation.x;
   }
 
   _buildPlayer() {
@@ -279,19 +333,17 @@ class MineRenderer {
     const shirt = new THREE.MeshLambertMaterial({ color: 0x2aa9a0 });
     const pants = new THREE.MeshLambertMaterial({ color: 0x3b5bd6 });
 
-    // Head with a simple face.
     const headTex = TextureFactory._make('face', (c) => {
       for (let y = 0; y < 16; y += 1) for (let x = 0; x < 16; x += 1) {
         c.fillStyle = ['#d9a37a', '#cf9870', '#e0ab82'][Math.floor(Math.random() * 3)];
         c.fillRect(x, y, 1, 1);
       }
-      c.fillStyle = '#3a2a1a'; // hair top
-      c.fillRect(0, 0, 16, 4);
-      c.fillStyle = '#ffffff'; c.fillRect(4, 8, 2, 2); c.fillRect(10, 8, 2, 2);
+      c.fillStyle = '#3a2a1a'; c.fillRect(0, 0, 16, 4);
+      c.fillStyle = '#fff'; c.fillRect(4, 8, 2, 2); c.fillRect(10, 8, 2, 2);
       c.fillStyle = '#3b5bd6'; c.fillRect(4, 9, 1, 1); c.fillRect(10, 9, 1, 1);
       c.fillStyle = '#7a4a2a'; c.fillRect(6, 12, 4, 1);
     });
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), this._mat(headTex));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshLambertMaterial({ map: headTex }));
     head.position.y = 1.5;
     this.player.add(head);
 
@@ -303,20 +355,15 @@ class MineRenderer {
     leftArm.position.set(-0.36, 0.9, 0);
     this.player.add(leftArm);
 
-    // Right arm pivots at the shoulder so it can swing.
     this.rightArm = new THREE.Group();
     this.rightArm.position.set(0.36, 1.25, 0);
     const rightArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.7, 0.22), skin);
     rightArmMesh.position.y = -0.35;
     this.rightArm.add(rightArmMesh);
 
-    // Pickaxe in the right hand.
     const pick = new THREE.Group();
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.55, 0.07), this._mat(TextureFactory.planks()));
-    const headIron = new THREE.Mesh(
-      new THREE.BoxGeometry(0.46, 0.09, 0.09),
-      new THREE.MeshLambertMaterial({ color: 0xb8c0c8 })
-    );
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.55, 0.07), this._mat('planks'));
+    const headIron = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.09, 0.09), new THREE.MeshLambertMaterial({ color: 0xb8c0c8 }));
     headIron.position.y = 0.28;
     pick.add(handle, headIron);
     pick.position.set(0, -0.62, 0.1);
@@ -336,19 +383,21 @@ class MineRenderer {
 
   _placePlayer(y) {
     this.player.position.set(0, y, 0.2);
-    this.player.rotation.y = Math.PI; // face into the shaft (-Z)
+    this.player.rotation.y = Math.PI;
     if (this.platform) this.platform.position.set(0, y, 0.2);
     this.headLamp.position.set(0, y + 1.6, 0.2);
   }
 
   swingPickaxe() { this.swingStart = performance.now(); }
 
-  descend(onArrive) {
-    this.depth += 1;
+  // Descend by `steps` floors (driven by the question level).
+  descend(steps, onArrive) {
+    steps = Math.max(1, steps | 0);
+    this.depth += steps;
     this.descendFrom = this.playerY;
     this.descendTo = -this.depth + STAND;
     this.descendStart = performance.now();
-    this.descendDur = 650;
+    this.descendDur = 420 + steps * 230;
     this.onArrive = onArrive || null;
   }
 
@@ -359,31 +408,32 @@ class MineRenderer {
     this.descendDur = 0;
   }
 
-  revealOre(depth, tierIndex) {
-    const face = this.frontFaces[depth];
-    const gfx = ORE_TIERS_GFX[tierIndex] || ORE_TIERS_GFX[1];
-    if (face) {
-      face.material = new THREE.MeshLambertMaterial({
-        map: gfx.tex(),
-        emissive: gfx.emissive,
-        emissiveIntensity: 1
-      });
-      face.userData.popStart = performance.now();
+  // Open the chest with a gold burst — the payoff for cashing out.
+  openChest(onDone) {
+    this.chestOpenStart = performance.now();
+    const goldMat = new THREE.MeshLambertMaterial({ color: 0xffd95a, emissive: 0x5a3f00, emissiveIntensity: 0.5 });
+    for (let i = 0; i < 22; i += 1) {
+      const s = 0.08 + Math.random() * 0.1;
+      const coin = new THREE.Mesh(new THREE.BoxGeometry(s, s, s), goldMat);
+      coin.position.set(0, this.playerY + 0.5, 0.2 - 0.55);
+      const ang = Math.random() * Math.PI * 2;
+      coin.userData.vx = Math.cos(ang) * (1 + Math.random() * 1.5);
+      coin.userData.vz = Math.sin(ang) * (1 + Math.random() * 1.5);
+      coin.userData.vy = 3 + Math.random() * 3;
+      this.rootGroup.add(coin);
+      this.goldBurst.push(coin);
     }
-    if (gfx.glow > 0 && face) {
-      const light = new THREE.PointLight(gfx.emissive || 0xffffff, gfx.glow, 6, 2);
-      light.color.set(tierIndex === 5 ? 0x6cf0e4 : tierIndex === 4 ? 0x3f6bf0 : 0xffd95a);
-      light.position.copy(face.position);
-      light.position.z += 0.6;
-      this.rootGroup.add(light);
-      this.oreLights.push(light);
-    }
+    const light = new THREE.PointLight(0xffd95a, 1.5, 8, 2);
+    light.position.set(0, this.playerY + 0.6, -0.4);
+    this.rootGroup.add(light);
+    this.dynamicLights.push(light);
+    if (onDone) setTimeout(onDone, 1300);
   }
 
   caveIn(onDone) {
     this.shakeUntil = performance.now() + 1100;
     this.shakeStrength = 0.4;
-    const debrisMat = this._mat(this._wallTexForRow(Math.max(1, this.depth)));
+    const debrisMat = this._mat(this._bandTexFor(Math.max(1, this.depth)));
     for (let i = 0; i < 18; i += 1) {
       const size = 0.3 + Math.random() * 0.5;
       const block = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), debrisMat);
@@ -408,74 +458,63 @@ class MineRenderer {
   }
 
   stopLoop() {
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-      this.animationId = null;
-    }
+    if (this.animationId) { cancelAnimationFrame(this.animationId); this.animationId = null; }
   }
 
   _update(delta) {
     const now = performance.now();
     this.orbitYaw += (this.targetOrbitYaw - this.orbitYaw) * Math.min(1, delta * 8);
 
-    // Descent tween.
     if (this.descendDur > 0) {
       const t = Math.min(1, (now - this.descendStart) / this.descendDur);
       const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       this.playerY = this.descendFrom + (this.descendTo - this.descendFrom) * eased;
       this._placePlayer(this.playerY);
       if (t >= 1) {
-        this.descendDur = 0;
-        this.playerY = this.descendTo;
-        this._placePlayer(this.playerY);
+        this.descendDur = 0; this.playerY = this.descendTo; this._placePlayer(this.playerY);
         const cb = this.onArrive; this.onArrive = null;
         if (cb) cb();
       }
     }
 
-    // Pickaxe / arm swing.
     if (this.swingStart >= 0) {
       const t = (now - this.swingStart) / 320;
       if (t >= 1) { this.rightArm.rotation.x = this.rightArmRest; this.swingStart = -1; }
       else { this.rightArm.rotation.x = this.rightArmRest - Math.sin(t * Math.PI) * 1.3; }
     }
 
-    // Ore pop.
-    this.rootGroup.children.forEach((child) => {
-      if (child.userData && child.userData.popStart) {
-        const t = (now - child.userData.popStart) / 280;
-        if (t >= 1) { child.scale.setScalar(1); child.userData.popStart = 0; }
-        else { child.scale.setScalar(1 + Math.sin(t * Math.PI) * 0.22); }
-      }
-    });
-
-    // Debris.
-    for (let i = this.debris.length - 1; i >= 0; i -= 1) {
-      const block = this.debris[i];
-      block.userData.vy -= 9.8 * delta;
-      block.position.y += block.userData.vy * delta;
-      block.rotation.x += block.userData.rot;
-      if (block.position.y < this.playerY - 6) {
-        this.rootGroup.remove(block);
-        block.geometry.dispose();
-        this.debris.splice(i, 1);
-      }
+    if (this.chestOpenStart >= 0) {
+      const t = (now - this.chestOpenStart) / 500;
+      this.chestLid.rotation.x = this.chestLidRest - Math.min(1, t) * 1.9;
+      if (t >= 1) this.chestOpenStart = -2; // hold open
     }
 
-    // Clouds drift.
-    this.clouds.forEach((cloud) => {
-      cloud.position.x += delta * 0.3;
-      if (cloud.position.x > 16) cloud.position.x = -16;
-    });
+    for (let i = this.debris.length - 1; i >= 0; i -= 1) {
+      const b = this.debris[i];
+      b.userData.vy -= 9.8 * delta;
+      b.position.y += b.userData.vy * delta;
+      b.rotation.x += b.userData.rot;
+      if (b.position.y < this.playerY - 6) { this.rootGroup.remove(b); b.geometry.dispose(); this.debris.splice(i, 1); }
+    }
 
-    // Third-person follow camera with shake.
+    for (let i = this.goldBurst.length - 1; i >= 0; i -= 1) {
+      const g = this.goldBurst[i];
+      g.userData.vy -= 9.8 * delta;
+      g.position.x += g.userData.vx * delta;
+      g.position.z += g.userData.vz * delta;
+      g.position.y += g.userData.vy * delta;
+      g.rotation.x += 0.2; g.rotation.y += 0.2;
+      if (g.position.y < this.playerY - 1) { this.rootGroup.remove(g); g.geometry.dispose(); this.goldBurst.splice(i, 1); }
+    }
+
     let shake = 0;
     if (now < this.shakeUntil) shake = ((this.shakeUntil - now) / 1100) * this.shakeStrength;
-    const dist = 4.8;
-    const height = 2.6;
-    const cx = Math.sin(this.orbitYaw) * dist + (Math.random() - 0.5) * shake;
-    const cz = Math.cos(this.orbitYaw) * dist + 0.2;
-    this.camera.position.set(cx, this.playerY + height + (Math.random() - 0.5) * shake, cz);
+    const dist = 4.8, height = 2.6;
+    this.camera.position.set(
+      Math.sin(this.orbitYaw) * dist + (Math.random() - 0.5) * shake,
+      this.playerY + height + (Math.random() - 0.5) * shake,
+      Math.cos(this.orbitYaw) * dist + 0.2
+    );
     this.camera.lookAt(0, this.playerY + 0.4, -0.8);
   }
 
@@ -483,19 +522,16 @@ class MineRenderer {
     const start = (x) => { this.isDragging = true; this.dragOrigin.x = x; };
     const move = (x) => {
       if (!this.isDragging) return;
-      const dx = x - this.dragOrigin.x;
-      this.dragOrigin.x = x;
+      const dx = x - this.dragOrigin.x; this.dragOrigin.x = x;
       this.targetOrbitYaw = THREE.MathUtils.clamp(this.targetOrbitYaw - dx * 0.006, -1.1, 1.1);
     };
     const end = () => { this.isDragging = false; };
-
     this.onMouseDown = (e) => { if (e.button === 0) start(e.clientX); };
     this.onMouseMove = (e) => move(e.clientX);
     this.onMouseUp = end;
     this.onTouchStart = (e) => { if (e.touches.length === 1) start(e.touches[0].clientX); };
     this.onTouchMove = (e) => { if (e.touches.length === 1) move(e.touches[0].clientX); };
     this.onTouchEnd = end;
-
     this.canvas.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mouseup', this.onMouseUp);
@@ -515,11 +551,11 @@ class MineRenderer {
   }
 
   _clear() {
-    this.frontFaces = {};
-    this.oreLights.forEach((l) => this.rootGroup.remove(l));
-    this.oreLights = [];
+    this.dynamicLights.forEach((l) => this.rootGroup.remove(l));
+    this.dynamicLights = [];
     this.debris = [];
-    this.clouds = [];
+    this.goldBurst = [];
+    this.chestOpenStart = -1;
     for (let i = this.rootGroup.children.length - 1; i >= 0; i -= 1) {
       const child = this.rootGroup.children[i];
       this.rootGroup.remove(child);

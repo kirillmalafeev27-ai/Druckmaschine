@@ -69,11 +69,10 @@ function shuffleArray(items) {
   return copy;
 }
 
-// Pools are keyed by difficulty tier (1..4). Each fetch pulls a batch for one
-// tier and a random grammar topic from the selected list.
+// Pools are keyed by CEFR level (A1..B2 = dive depth 1..4). Each fetch pulls a
+// batch for one level and a random grammar topic from the selected list.
 class QuestionManager {
   constructor() {
-    this.level = 'A2';
     this.lexicalTopic = null;
     this.grammarTopics = ['Artikel'];
     this.pools = Object.create(null);
@@ -81,8 +80,7 @@ class QuestionManager {
     this.usedDisplays = new Set();
   }
 
-  configure({ level, lexicalTopic, grammarTopics }) {
-    this.level = level || 'A2';
+  configure({ lexicalTopic, grammarTopics }) {
     this.lexicalTopic = lexicalTopic || null;
     this.grammarTopics = (grammarTopics && grammarTopics.length) ? grammarTopics : ['Artikel'];
     this.pools = Object.create(null);
@@ -90,65 +88,69 @@ class QuestionManager {
     this.usedDisplays = new Set();
   }
 
-  prefetch(tiers = [1, 2]) {
-    return Promise.allSettled(tiers.map((tier) => this._ensurePool(tier)));
+  prefetch(levels = ['A1', 'A2']) {
+    return Promise.allSettled(levels.map((lvl) => this._ensurePool(lvl)));
   }
 
-  // Returns a formatted question for the given difficulty tier, or a fallback.
-  async getQuestion(tier) {
-    await this._ensurePool(tier);
-    const pool = this.pools[tier];
+  // Returns a formatted question for the given CEFR level, or a fallback.
+  async getQuestion(level, difficulty) {
+    await this._ensurePool(level);
+    const pool = this.pools[level];
 
     if (!pool || pool.length === 0) {
-      return this._fallbackQuestion(tier);
+      return this._fallbackQuestion(level);
     }
 
     const raw = pool.shift();
     this.usedDisplays.add(raw.display);
 
     if (pool.length <= 2) {
-      this._ensurePool(tier); // top up in background
+      this._ensurePool(level); // top up in background
     }
 
-    return this._formatQuestion(raw, tier);
+    return this._formatQuestion(raw, level);
   }
 
   _randomGrammarTopic() {
     return this.grammarTopics[Math.floor(Math.random() * this.grammarTopics.length)];
   }
 
-  async _ensurePool(tier) {
-    if (this.fetching[tier]) {
-      return this.fetching[tier];
+  _difficultyFor(level) {
+    return { A1: 1, A2: 2, B1: 3, B2: 4 }[level] || 1;
+  }
+
+  async _ensurePool(level) {
+    if (this.fetching[level]) {
+      return this.fetching[level];
     }
-    const pool = this.pools[tier];
+    const pool = this.pools[level];
     if (pool && pool.length > 2) {
       return pool;
     }
 
-    this.fetching[tier] = this._fetchQuestions(tier)
+    this.fetching[level] = this._fetchQuestions(level)
       .catch((error) => {
-        console.warn(`Не удалось загрузить вопросы (tier ${tier}):`, error);
+        console.warn(`Не удалось загрузить вопросы (${level}):`, error);
         return [];
       })
       .finally(() => {
-        delete this.fetching[tier];
+        delete this.fetching[level];
       });
 
-    return this.fetching[tier];
+    return this.fetching[level];
   }
 
-  async _fetchQuestions(tier) {
+  async _fetchQuestions(level) {
     const grammarTopic = this._randomGrammarTopic();
     const seen = Array.from(this.usedDisplays).slice(-12);
     const response = await fetch('/api/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        level: this.level,
+        level,
         lexicalTopic: this.lexicalTopic,
         grammarTopic,
-        difficulty: tier,
+        difficulty: this._difficultyFor(level),
         count: 12,
         exclude: seen
       })
@@ -161,12 +163,12 @@ class QuestionManager {
     const data = await response.json();
     const valid = (data.questions || []).filter((q) => this._isValidQuestion(q));
     if (!valid.length) {
-      return this.pools[tier] || [];
+      return this.pools[level] || [];
     }
 
     valid.forEach((q) => { q.grammarTopic = grammarTopic; });
-    const pool = [...(this.pools[tier] || []), ...shuffleArray(valid)];
-    this.pools[tier] = pool;
+    const pool = [...(this.pools[level] || []), ...shuffleArray(valid)];
+    this.pools[level] = pool;
     return pool;
   }
 
@@ -183,14 +185,13 @@ class QuestionManager {
     );
   }
 
-  _formatQuestion(raw, tier) {
+  _formatQuestion(raw, level) {
     const correctAnswer = raw.options[raw.correct];
     const shuffledOptions = shuffleArray(raw.options);
 
     return {
-      tier,
+      level,
       grammarTopic: raw.grammarTopic || this._randomGrammarTopic(),
-      level: this.level,
       text: raw.text,
       display: raw.display,
       options: {
@@ -200,11 +201,10 @@ class QuestionManager {
     };
   }
 
-  _fallbackQuestion(tier) {
+  _fallbackQuestion(level) {
     return {
-      tier,
+      level,
       grammarTopic: this._randomGrammarTopic(),
-      level: this.level,
       text: 'Резервное упражнение',
       display: 'Сервер вопросов временно недоступен. Нажмите OK, чтобы продолжить спуск.',
       options: {

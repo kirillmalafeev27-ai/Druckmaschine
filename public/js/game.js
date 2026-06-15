@@ -1,15 +1,12 @@
-const MAX_FLOORS = 10;
-
-// Each band covers two floors. min = guaranteed gold (knowledge always pays),
-// bonus = hidden random extra on top (the reveal thrill). Steep growth keeps
-// deep runs short and rich.
-const ORE_TIERS = [
-  { name: 'Уголь', icon: '⚫', min: 10, bonus: 10, tier: 1, difficulty: 1 },
-  { name: 'Железо', icon: '🔩', min: 30, bonus: 30, tier: 2, difficulty: 2 },
-  { name: 'Золото', icon: '🟡', min: 80, bonus: 80, tier: 3, difficulty: 3 },
-  { name: 'Лазурит', icon: '🔵', min: 200, bonus: 200, tier: 4, difficulty: 4 },
-  { name: 'Алмаз', icon: '💎', min: 500, bonus: 500, tier: 5, difficulty: 4 }
+const MAX_QUESTIONS = 10;
+// Levels: CEFR A1..B2 = dive 1..4 floors on a correct answer.
+const LEVELS = [
+  { n: 1, cefr: 'A1', drop: 1 },
+  { n: 2, cefr: 'A2', drop: 2 },
+  { n: 3, cefr: 'B1', drop: 3 },
+  { n: 4, cefr: 'B2', drop: 4 }
 ];
+const MAX_DEPTH = MAX_QUESTIONS * 4; // 40
 
 const SCREEN_IDS = ['menu-screen', 'game-screen', 'win-screen', 'lose-screen', 'leaderboard-screen'];
 
@@ -17,23 +14,18 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function tierForDepth(depth) {
-  const index = Math.min(ORE_TIERS.length - 1, Math.floor((depth - 1) / 2));
-  return ORE_TIERS[index];
+// Hidden value earned for descending onto floor `d`. Steep with depth so risky
+// deep dives pay off — but the player never sees these numbers until cash-out.
+function floorValue(d) {
+  return randomInt(8 + d * 6, 18 + d * 16);
 }
 
 class Leaderboard {
-  constructor() {
-    this.key = 'schacht_leaderboard';
-  }
+  constructor() { this.key = 'schacht_leaderboard'; }
 
   getScores() {
-    try {
-      return JSON.parse(localStorage.getItem(this.key)) || [];
-    } catch (error) {
-      console.warn('Failed to read leaderboard:', error);
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem(this.key)) || []; }
+    catch (error) { console.warn('Failed to read leaderboard:', error); return []; }
   }
 
   best() {
@@ -44,11 +36,7 @@ class Leaderboard {
   addScore(entry) {
     const scores = this.getScores();
     scores.push(entry);
-    // Leaderboard = best single run (gold banked), so runs never accumulate.
-    scores.sort((a, b) => {
-      if (b.gold !== a.gold) return b.gold - a.gold;
-      return b.depth - a.depth;
-    });
+    scores.sort((a, b) => (b.gold !== a.gold ? b.gold - a.gold : b.depth - a.depth));
     try { localStorage.setItem(this.key, JSON.stringify(scores.slice(0, 20))); } catch (_) {}
   }
 
@@ -57,31 +45,17 @@ class Leaderboard {
     const empty = document.getElementById('leaderboard-empty');
     const scores = this.getScores();
     tbody.innerHTML = '';
-
-    if (!scores.length) {
-      empty.classList.remove('hidden');
-      return;
-    }
+    if (!scores.length) { empty.classList.remove('hidden'); return; }
     empty.classList.add('hidden');
-
     scores.forEach((score, index) => {
       const row = document.createElement('tr');
       if (index < 3) row.className = `rank-${index + 1}`;
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${this._escape(score.name)}</td>
-        <td>${score.depth}</td>
-        <td>${score.gold} 💰</td>
-      `;
+      row.innerHTML = `<td>${index + 1}</td><td>${this._escape(score.name)}</td><td>${score.depth}</td><td>${score.gold} 💰</td>`;
       tbody.appendChild(row);
     });
   }
 
-  _escape(value) {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
-  }
+  _escape(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
 }
 
 class Game {
@@ -94,9 +68,10 @@ class Game {
 
     this.settings = null;
     this.depth = 0;
-    this.pot = 0;
+    this.questionsUsed = 0;
+    this.pot = 0;                 // hidden until cash-out
+    this.currentLevel = null;
     this.currentQuestion = null;
-    this.currentTier = null;
 
     this.revealTimeoutId = null;
     this.transitionTimeoutId = null;
@@ -112,16 +87,16 @@ class Game {
       loadingText: document.getElementById('loading-text'),
       decisionPanel: document.getElementById('decision-panel'),
       decisionPrompt: document.getElementById('decision-prompt'),
-      digBtn: document.getElementById('dig-btn'),
-      bankBtn: document.getElementById('bank-btn'),
+      levelButtons: Array.from(document.querySelectorAll('.lvl-btn')),
+      takeBtn: document.getElementById('take-btn'),
       questionPanel: document.getElementById('question-panel'),
       questionTopicLabel: document.getElementById('question-topic-label'),
       questionText: document.getElementById('question-text'),
       questionOptions: document.getElementById('question-options'),
       questionFeedback: document.getElementById('question-feedback'),
       depthNum: document.getElementById('depth-num'),
-      goldNum: document.getElementById('gold-num'),
-      tierDisplay: document.getElementById('tier-display'),
+      qNum: document.getElementById('q-num'),
+      treasureDisplay: document.getElementById('treasure-display'),
       bestNum: document.getElementById('best-num'),
       messageBanner: document.getElementById('message-banner'),
       revealBanner: document.getElementById('reveal-banner'),
@@ -145,7 +120,6 @@ class Game {
     this._showLoading('Готовим шахту...');
 
     this.questionManager.configure({
-      level: this.settings.langLevel,
       lexicalTopic: this.settings.lexicalTopic,
       grammarTopics: this.settings.grammarTopics
     });
@@ -156,91 +130,76 @@ class Game {
 
     await Promise.allSettled([
       this.renderer.ensureReady(),
-      this.questionManager.prefetch([1, 2])
+      this.questionManager.prefetch(['A1', 'A2'])
     ]);
 
-    this.renderer.buildShaft(MAX_FLOORS);
+    this.renderer.buildShaft(MAX_DEPTH);
     this.renderer.startLoop(() => {});
 
     this._updateHud();
     this._hideLoading();
     this.state = 'decision';
     this._showDecision();
-    this._showMessage('Ты на поверхности. Копай вниз за рудой — но помни про обвал.', 2600);
+    this._showMessage('Выбери уровень задания. Выше уровень — глубже нырок, но труднее вопрос.', 3000);
   }
 
   startNewRun() {
-    this.init(this.settings).catch((error) => {
-      console.error('Failed to start run:', error);
-    });
+    this.init(this.settings).catch((error) => console.error('Failed to start run:', error));
   }
 
   _resetRunState() {
     this.state = 'loading';
     this.depth = 0;
+    this.questionsUsed = 0;
     this.pot = 0;
+    this.currentLevel = null;
     this.currentQuestion = null;
-    this.currentTier = null;
   }
 
-  // ---------- Decision: dig deeper or climb out ----------
+  // ---------- Decision: pick a level to dive, or take the treasure ----------
   _showDecision() {
     this._hidePanels();
     this.state = 'decision';
     this.ui.decisionPanel.classList.remove('hidden');
     this._updateHud();
 
-    const atBottom = this.depth >= MAX_FLOORS;
-    if (atBottom) {
-      // Safety net — normally we auto-bank at the bottom.
-      this.bank(true);
-      return;
-    }
+    const outOfQuestions = this.questionsUsed >= MAX_QUESTIONS;
+    this.ui.levelButtons.forEach((btn) => { btn.disabled = outOfQuestions; });
+    this.ui.takeBtn.disabled = this.depth === 0;
 
-    const nextTier = tierForDepth(this.depth + 1);
-    this.ui.digBtn.disabled = false;
-    this.ui.bankBtn.disabled = this.depth === 0;
-
-    if (this.depth === 0) {
-      this.ui.decisionPrompt.textContent =
-        `Глубже ждёт ${nextTier.icon} ${nextTier.name}. Спускайся!`;
+    if (outOfQuestions) {
+      this.ui.decisionPrompt.textContent = 'Вопросы кончились! Забирай сокровище, пока цело.';
+    } else if (this.depth === 0) {
+      this.ui.decisionPrompt.textContent = 'Выбери уровень задания и ныряй за сокровищем.';
     } else {
       this.ui.decisionPrompt.textContent =
-        `Рюкзак: ${this.pot} 💰. Глубже — ${nextTier.icon} ${nextTier.name} (дороже). ` +
-        `Копать дальше или подняться и забрать?`;
+        `Глубина ${this.depth}. Нырнуть глубже — или забрать сокровище (узнаешь ценность только тогда)?`;
     }
   }
 
-  async digDeeper() {
-    if (this.state !== 'decision' || this.depth >= MAX_FLOORS) {
-      return;
-    }
+  async chooseLevel(levelNumber) {
+    if (this.state !== 'decision' || this.questionsUsed >= MAX_QUESTIONS) return;
+    const level = LEVELS[levelNumber - 1];
+    if (!level) return;
 
-    // Commit BLIND: the question only appears after you choose to descend.
+    // Commit BLIND: the question only appears after you pick a level.
     this._hidePanels();
     this.state = 'question';
-    const nextDepth = this.depth + 1;
-    this.currentTier = tierForDepth(nextDepth);
+    this.questionsUsed += 1;
+    this.currentLevel = level;
+    this._updateHud();
 
-    this._showMessage('Долбим породу...', 1200);
-    const question = await this.questionManager.getQuestion(this.currentTier.difficulty);
-
-    if (this.state !== 'question') {
-      return; // run was aborted while fetching
-    }
+    this._showMessage(`Бурим породу... (${level.cefr})`, 1400);
+    const question = await this.questionManager.getQuestion(level.cefr, level.n);
+    if (this.state !== 'question') return;
     this.currentQuestion = question;
     this._clearMessage();
     this._showQuestion(question);
   }
 
-  bank(reachedBottom = false) {
-    if (this.state !== 'decision' && !reachedBottom) {
-      return;
-    }
-    if (this.depth === 0 && !reachedBottom) {
-      return;
-    }
-    this._win(reachedBottom);
+  takeTreasure() {
+    if (this.state !== 'decision' || this.depth === 0) return;
+    this._win();
   }
 
   // ---------- Question ----------
@@ -251,7 +210,7 @@ class Game {
     this.ui.questionFeedback.textContent = '';
 
     this.ui.questionTopicLabel.textContent =
-      `${this.currentTier.icon} ${this.currentTier.name} • ${question.grammarTopic} • ${question.level}`;
+      `${this.currentLevel.cefr} • ныряем на ${this.currentLevel.drop} • ${question.grammarTopic}`;
     this.ui.questionText.innerHTML =
       `${this._escape(question.text)}<br><strong>${this._escape(question.display)}</strong>`;
 
@@ -263,12 +222,8 @@ class Game {
       button.addEventListener('click', () => {
         const buttons = this.ui.questionOptions.querySelectorAll('.option-btn');
         buttons.forEach((item) => { item.disabled = true; });
-        if (index === question.options.correctIndex) {
-          button.classList.add('correct');
-        } else {
-          button.classList.add('wrong');
-          buttons[question.options.correctIndex].classList.add('correct');
-        }
+        if (index === question.options.correctIndex) button.classList.add('correct');
+        else { button.classList.add('wrong'); buttons[question.options.correctIndex].classList.add('correct'); }
         this.answer(index);
       });
       this.ui.questionOptions.appendChild(button);
@@ -276,27 +231,25 @@ class Game {
   }
 
   answer(selectedIndex) {
-    if (this.state !== 'question' || !this.currentQuestion) {
-      return;
-    }
+    if (this.state !== 'question' || !this.currentQuestion) return;
     const isCorrect = selectedIndex === this.currentQuestion.options.correctIndex;
 
     if (isCorrect) {
       this.audio.playCorrect();
       this.audio.playDig();
       this.renderer.swingPickaxe();
-      this._showFeedback(true, 'Верно! Спускаемся глубже...');
+      this._showFeedback(true, `Верно! Ныряем на ${this.currentLevel.drop} вниз...`);
 
       this.state = 'descending';
       this._clearTransition();
+      const drop = this.currentLevel.drop;
       this.transitionTimeoutId = window.setTimeout(() => {
         if (this.state !== 'descending') return;
-        this.renderer.descend(() => this._onArrive());
-      }, 600);
+        this.renderer.descend(drop, () => this._onArrive(drop));
+      }, 550);
       return;
     }
 
-    // Wrong → cave-in, lose the whole backpack.
     this.audio.playWrong();
     const correct = this.currentQuestion.options.options[this.currentQuestion.options.correctIndex];
     this._showFeedback(false, `Обвал! Правильно: ${correct}`);
@@ -305,38 +258,30 @@ class Game {
     this.transitionTimeoutId = window.setTimeout(() => this._caveIn(), 900);
   }
 
-  _onArrive() {
-    this.depth += 1;
-    const tier = tierForDepth(this.depth);
-    const gold = tier.min + randomInt(0, tier.bonus);
-    this.pot += gold;
+  _onArrive(drop) {
+    let gained = 0;
+    for (let i = 1; i <= drop; i += 1) gained += floorValue(this.depth + i);
+    this.depth += drop;
+    this.pot += gained;
 
-    this.renderer.revealOre(this.depth, tier.tier);
-    this.audio.playOreReveal(tier.tier);
-    this._showReveal(`+${gold} 💰 ${tier.icon}`);
+    this.audio.playOreReveal(Math.min(5, this.currentLevel.n + 1));
+    this._showReveal('🎁 Сундук потяжелел...');
     this._updateHud();
-
-    if (this.depth >= MAX_FLOORS) {
-      this._clearTransition();
-      this.transitionTimeoutId = window.setTimeout(() => this.bank(true), 1300);
-      return;
-    }
 
     this._clearTransition();
     this.transitionTimeoutId = window.setTimeout(() => {
-      if (this.state === 'descending') {
-        this._showDecision();
-      }
-    }, 1100);
+      if (this.state === 'descending') this._showDecision();
+    }, 1000);
   }
 
   // ---------- End states ----------
-  _win(reachedBottom) {
+  _win() {
     if (this.state === 'won' || this.state === 'lost') return;
     this.state = 'won';
     this._clearTimeouts();
     this._hidePanels();
     this.audio.playBank();
+    this.renderer.openChest(() => {});
 
     this.leaderboard.addScore({
       name: this.settings.playerName,
@@ -345,15 +290,15 @@ class Game {
       date: new Date().toISOString()
     });
 
-    this.ui.winTitle.textContent = reachedBottom ? '💎 ДНО ШАХТЫ!' : '🪜 ТЫ ВЫБРАЛСЯ!';
+    this._showReveal(`🎁 ${this.pot} 💰`);
+    this.ui.winTitle.textContent = '🎁 СОКРОВИЩЕ ТВОЁ!';
     this.ui.winStats.textContent =
-      `Ты поднял на поверхность ${this.pot} 💰 с глубины ${this.depth}. ` +
-      (reachedBottom ? 'Ты добрался до самого дна — легенда!' : 'Золото твоё. Жадность не победила.');
+      `Ты поднял сокровище ценой ${this.pot} 💰 с глубины ${this.depth}. Жадность не победила.`;
 
     window.setTimeout(() => {
       if (this.renderer) this.renderer.stopLoop();
       this._setActiveScreen('win-screen');
-    }, 700);
+    }, 1600);
   }
 
   _caveIn() {
@@ -364,9 +309,9 @@ class Game {
     this.audio.playCaveIn();
     this.ui.deathOverlay.classList.add('active');
 
-    this.ui.loseMessage.textContent = 'Шахта обрушилась, и весь рюкзак засыпало...';
+    this.ui.loseMessage.textContent = 'Шахта обрушилась, и сокровище засыпало...';
     this.ui.loseStats.textContent =
-      `Ты потерял ${this.pot} 💰 на глубине ${this.depth}. Надо было вовремя подняться.`;
+      `Ты был на глубине ${this.depth}. Сокровище потеряно. Надо было вовремя подняться.`;
 
     this.renderer.caveIn(() => {
       if (this.renderer) this.renderer.stopLoop();
@@ -374,7 +319,7 @@ class Game {
     });
   }
 
-  // ---------- View helpers ----------
+  // ---------- View / HUD ----------
   rotateView(direction) {
     if (this.renderer && (this.state === 'decision' || this.state === 'question')) {
       this.renderer.nudgeYaw(direction);
@@ -383,17 +328,11 @@ class Game {
 
   _updateHud() {
     this.ui.depthNum.textContent = this.depth;
-    this.ui.goldNum.textContent = this.pot;
+    this.ui.qNum.textContent = this.questionsUsed;
     this.ui.bestNum.textContent = this.leaderboard.best();
-    if (this.depth >= 1) {
-      const tier = tierForDepth(this.depth);
-      this.ui.tierDisplay.textContent = `${tier.icon} ${tier.name}`;
-    } else {
-      this.ui.tierDisplay.textContent = '';
-    }
+    // Treasure value stays hidden during the run.
+    this.ui.treasureDisplay.textContent = this.depth > 0 ? '🎁 ???' : '🎁 —';
   }
-
-  _showQuestionTopicLabel() {}
 
   _showFeedback(isCorrect, text) {
     this.ui.questionFeedback.classList.remove('hidden', 'correct', 'wrong');
@@ -405,28 +344,21 @@ class Game {
     const banner = this.ui.revealBanner;
     banner.textContent = text;
     banner.classList.remove('hidden', 'show');
-    void banner.offsetWidth; // restart animation
+    void banner.offsetWidth;
     banner.classList.add('show');
     if (this.revealTimeoutId) window.clearTimeout(this.revealTimeoutId);
-    this.revealTimeoutId = window.setTimeout(() => {
-      banner.classList.add('hidden');
-    }, 1200);
+    this.revealTimeoutId = window.setTimeout(() => banner.classList.add('hidden'), 1200);
   }
 
   _showMessage(text, duration = 1500) {
     this._clearMessage();
     this.ui.messageBanner.textContent = text;
     this.ui.messageBanner.classList.remove('hidden');
-    this.messageTimeoutId = window.setTimeout(() => {
-      this.ui.messageBanner.classList.add('hidden');
-    }, duration);
+    this.messageTimeoutId = window.setTimeout(() => this.ui.messageBanner.classList.add('hidden'), duration);
   }
 
   _clearMessage() {
-    if (this.messageTimeoutId) {
-      window.clearTimeout(this.messageTimeoutId);
-      this.messageTimeoutId = null;
-    }
+    if (this.messageTimeoutId) { window.clearTimeout(this.messageTimeoutId); this.messageTimeoutId = null; }
     this.ui.messageBanner.classList.add('hidden');
   }
 
@@ -435,26 +367,14 @@ class Game {
     this.ui.questionPanel.classList.add('hidden');
   }
 
-  _showLoading(text) {
-    this.ui.loadingText.textContent = text;
-    this.ui.loadingOverlay.classList.remove('hidden');
-  }
-
-  _hideLoading() {
-    this.ui.loadingOverlay.classList.add('hidden');
-  }
+  _showLoading(text) { this.ui.loadingText.textContent = text; this.ui.loadingOverlay.classList.remove('hidden'); }
+  _hideLoading() { this.ui.loadingOverlay.classList.add('hidden'); }
 
   _setActiveScreen(screenId) {
-    SCREEN_IDS.forEach((id) => {
-      document.getElementById(id).classList.toggle('active', id === screenId);
-    });
+    SCREEN_IDS.forEach((id) => document.getElementById(id).classList.toggle('active', id === screenId));
   }
 
-  restart() {
-    this.depth = 0;
-    this.pot = 0;
-    this.state = 'menu';
-  }
+  restart() { this.depth = 0; this.pot = 0; this.questionsUsed = 0; this.state = 'menu'; }
 
   destroy() {
     this._clearTimeouts();
@@ -468,35 +388,19 @@ class Game {
   }
 
   _disposeRuntime() {
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer = null;
-    }
-    if (this.audio) {
-      this.audio.dispose();
-      this.audio = null;
-    }
+    if (this.renderer) { this.renderer.dispose(); this.renderer = null; }
+    if (this.audio) { this.audio.dispose(); this.audio = null; }
   }
 
   _clearTransition() {
-    if (this.transitionTimeoutId) {
-      window.clearTimeout(this.transitionTimeoutId);
-      this.transitionTimeoutId = null;
-    }
+    if (this.transitionTimeoutId) { window.clearTimeout(this.transitionTimeoutId); this.transitionTimeoutId = null; }
   }
 
   _clearTimeouts() {
     this._clearTransition();
     this._clearMessage();
-    if (this.revealTimeoutId) {
-      window.clearTimeout(this.revealTimeoutId);
-      this.revealTimeoutId = null;
-    }
+    if (this.revealTimeoutId) { window.clearTimeout(this.revealTimeoutId); this.revealTimeoutId = null; }
   }
 
-  _escape(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  _escape(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 }

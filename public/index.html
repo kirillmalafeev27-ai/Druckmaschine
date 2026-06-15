@@ -12,7 +12,7 @@
   <div id="menu-screen" class="screen active">
     <div class="menu-container">
       <h1 id="game-title">⛏ ШАХТА</h1>
-      <p class="subtitle" id="game-subtitle">Копай глубже за золотом — или потеряй всё</p>
+      <p class="subtitle" id="game-subtitle">Ныряй глубже за сокровищем — или потеряй всё</p>
 
       <div id="setup-step1" class="setup-step">
         <div class="menu-options">
@@ -27,43 +27,19 @@
       </div>
 
       <div id="setup-step2" class="setup-step hidden">
-        <h2 class="step-title">Выберите уровень немецкого</h2>
-        <p class="step-hint">Уровень фиксируется на всю игру. Чем глубже шахта — тем коварнее вопросы этого уровня.</p>
-        <div class="level-buttons">
-          <button class="level-btn" data-level="A1">
-            <span class="level-code">A1</span>
-            <span class="level-desc">Начальный</span>
-          </button>
-          <button class="level-btn" data-level="A2">
-            <span class="level-code">A2</span>
-            <span class="level-desc">Элементарный</span>
-          </button>
-          <button class="level-btn" data-level="B1">
-            <span class="level-code">B1</span>
-            <span class="level-desc">Средний</span>
-          </button>
-          <button class="level-btn" data-level="B2">
-            <span class="level-code">B2</span>
-            <span class="level-desc">Выше среднего</span>
-          </button>
-        </div>
+        <h2 class="step-title">Выберите лексическую тему</h2>
+        <p class="step-hint">Все упражнения будут использовать слова из этой темы.</p>
+        <div id="lexical-grid" class="lexical-grid"></div>
         <button id="back-to-step1" class="btn-secondary">Назад</button>
       </div>
 
       <div id="setup-step3" class="setup-step hidden">
-        <h2 class="step-title">Выберите лексическую тему</h2>
-        <p class="step-hint">Все упражнения будут использовать слова из этой темы.</p>
-        <div id="lexical-grid" class="lexical-grid"></div>
-        <button id="back-to-step2" class="btn-secondary">Назад</button>
-      </div>
-
-      <div id="setup-step4" class="setup-step hidden">
         <h2 class="step-title">Выберите грамматические темы</h2>
-        <p class="step-hint">Отметьте одну или несколько тем — вопросы в шахте будут из них.</p>
+        <p class="step-hint">Отметьте одну или несколько тем. Уровень задания (A1–B2) ты выбираешь уже в шахте.</p>
         <div id="grammar-picker" class="grammar-picker"></div>
         <div class="step4-buttons">
           <button id="start-btn" class="btn-primary" disabled>СПУСТИТЬСЯ В ШАХТУ</button>
-          <button id="back-to-step3" class="btn-secondary">Назад</button>
+          <button id="back-to-step2" class="btn-secondary">Назад</button>
         </div>
       </div>
     </div>
@@ -74,27 +50,23 @@
       <h2>КАК ИГРАТЬ</h2>
       <div class="tutorial-step">
         <span class="step-icon">⛏</span>
-        <strong>Копай глубже</strong> — ответь верно, и спустишься на этаж ниже. Глубже руда дороже.
+        <strong>Выбери уровень задания</strong> A1–B2. Чем выше уровень — тем труднее вопрос.
       </div>
       <div class="tutorial-step">
-        <span class="step-icon">💰</span>
-        Золото с каждого этажа падает в <strong>рюкзак</strong>, но оно ещё НЕ твоё.
+        <span class="step-icon">⬇</span>
+        Ответ верный → ныряешь вниз сразу на <strong>столько этажей, какой уровень</strong> (B2 = на 4 вниз).
       </div>
       <div class="tutorial-step">
-        <span class="step-icon">🪜</span>
-        <strong>Поднимись наверх</strong> в любой момент — и золото из рюкзака станет твоим счётом.
+        <span class="step-icon">🎁</span>
+        Сокровище растёт с глубиной, но его ценность <strong>скрыта</strong> — увидишь только когда заберёшь.
       </div>
       <div class="tutorial-step">
         <span class="step-icon">💥</span>
-        <strong>Ошибся — обвал!</strong> Весь несённый рюкзак сгорает. Спуск окончен.
-      </div>
-      <div class="tutorial-step">
-        <span class="step-icon">?</span>
-        Ты не знаешь, сколько в руде золота — знаешь только, что глубже его <strong>больше</strong>. Жадничать или забрать?
+        <strong>Ошибся — обвал!</strong> Всё сокровище засыпало. Спуск окончен.
       </div>
       <div class="tutorial-step">
         <span class="step-icon">10</span>
-        Всего <strong>10 спусков</strong> — это и есть дно шахты. Дальше не уйдёшь.
+        Всего <strong>10 вопросов</strong>. Жми «Забрать сокровище» вовремя — жадность губит.
       </div>
       <button id="tutorial-close" class="btn-primary">ПОНЯТНО!</button>
     </div>
@@ -107,10 +79,10 @@
     <div id="reveal-banner" class="hidden"></div>
 
     <div id="hud">
-      <div class="hud-item" id="depth-display">Глубина <span id="depth-num">0</span>/10</div>
-      <div class="hud-item gold" id="gold-display">Рюкзак: <span id="gold-num">0</span> 💰</div>
-      <div class="hud-item" id="tier-display"></div>
-      <div class="hud-item best" id="best-display">Рекорд: <span id="best-num">0</span></div>
+      <div class="hud-item" id="depth-display">Глубина <span id="depth-num">0</span></div>
+      <div class="hud-item" id="questions-display">Вопросы <span id="q-num">0</span>/10</div>
+      <div class="hud-item gold" id="treasure-display">🎁 ???</div>
+      <div class="hud-item best" id="best-display">Рекорд <span id="best-num">0</span></div>
     </div>
 
     <div id="loading-overlay" class="hidden">
@@ -120,10 +92,13 @@
 
     <div id="decision-panel" class="hidden">
       <p class="decision-prompt" id="decision-prompt"></p>
-      <div class="decision-buttons">
-        <button id="dig-btn" class="btn-dig">⛏ КОПАТЬ ГЛУБЖЕ</button>
-        <button id="bank-btn" class="btn-bank">🪜 ПОДНЯТЬСЯ И ЗАБРАТЬ</button>
+      <div class="level-pick">
+        <button class="lvl-btn" data-level="1"><span class="lvl-cefr">A1</span><span class="lvl-drop">↓ 1</span></button>
+        <button class="lvl-btn" data-level="2"><span class="lvl-cefr">A2</span><span class="lvl-drop">↓ 2</span></button>
+        <button class="lvl-btn" data-level="3"><span class="lvl-cefr">B1</span><span class="lvl-drop">↓ 3</span></button>
+        <button class="lvl-btn" data-level="4"><span class="lvl-cefr">B2</span><span class="lvl-drop">↓ 4</span></button>
       </div>
+      <button id="take-btn" class="btn-bank">🎁 ЗАБРАТЬ СОКРОВИЩЕ</button>
     </div>
 
     <div id="question-panel" class="hidden">
@@ -138,7 +113,7 @@
 
   <div id="win-screen" class="screen">
     <div class="end-container">
-      <h1 id="win-title">ТЫ ВЫБРАЛСЯ! 🪜</h1>
+      <h1 id="win-title">🎁 СОКРОВИЩЕ ТВОЁ!</h1>
       <p id="win-stats"></p>
       <div class="end-buttons">
         <button id="win-next" class="btn-primary">НОВЫЙ СПУСК</button>
@@ -150,7 +125,7 @@
   <div id="lose-screen" class="screen">
     <div class="end-container">
       <h1 id="lose-title">💥 ОБВАЛ!</h1>
-      <p id="lose-message">Шахта обрушилась, и весь рюкзак засыпало...</p>
+      <p id="lose-message">Шахта обрушилась, и сокровище засыпало...</p>
       <p id="lose-stats"></p>
       <div class="end-buttons">
         <button id="lose-restart" class="btn-primary">СПУСТИТЬСЯ СНОВА</button>
@@ -168,7 +143,7 @@
             <th>#</th>
             <th>Имя</th>
             <th>Глубина</th>
-            <th>Золото</th>
+            <th>Сокровище</th>
           </tr>
         </thead>
         <tbody id="leaderboard-body"></tbody>

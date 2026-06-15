@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     gameScreen: document.getElementById('game-screen')
   };
 
-  let selectedLevel = null;
   let selectedLexical = null;
   const selectedGrammar = new Set();
   let pendingTutorialCallback = null;
@@ -32,24 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('to-step2-btn').addEventListener('click', () => showStep(2));
   document.getElementById('back-to-step1').addEventListener('click', () => showStep(1));
   document.getElementById('back-to-step2').addEventListener('click', () => showStep(2));
-  document.getElementById('back-to-step3').addEventListener('click', () => showStep(3));
-
-  document.querySelectorAll('.level-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      document.querySelectorAll('.level-btn').forEach((item) => {
-        item.classList.toggle('selected', item === button);
-      });
-      selectedLevel = button.dataset.level;
-      updateStartButton();
-      showStep(3);
-    });
-  });
 
   ui.playerName.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      showStep(2);
-    }
+    if (event.key === 'Enter') { event.preventDefault(); showStep(2); }
   });
 
   document.getElementById('start-btn').addEventListener('click', () => {
@@ -58,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tutorialSeen = false;
     try { tutorialSeen = Boolean(localStorage.getItem(TUTORIAL_SEEN_KEY)); } catch (_) {}
-
     if (!tutorialSeen) {
       try { localStorage.setItem(TUTORIAL_SEEN_KEY, '1'); } catch (_) {}
       showTutorial(() => startGame(settings));
@@ -77,30 +60,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // In-game controls
-  document.getElementById('dig-btn').addEventListener('click', () => game.digDeeper());
-  document.getElementById('bank-btn').addEventListener('click', () => game.bank());
+  document.querySelectorAll('.lvl-btn').forEach((btn) => {
+    btn.addEventListener('click', () => game.chooseLevel(parseInt(btn.dataset.level, 10)));
+  });
+  document.getElementById('take-btn').addEventListener('click', () => game.takeTreasure());
 
   document.getElementById('leaderboard-btn').addEventListener('click', () => {
     game.leaderboard.render();
     setActiveScreen('leaderboard-screen');
   });
-  document.getElementById('leaderboard-back').addEventListener('click', () => {
-    setActiveScreen('menu-screen');
-  });
+  document.getElementById('leaderboard-back').addEventListener('click', () => setActiveScreen('menu-screen'));
 
   document.getElementById('win-next').addEventListener('click', () => game.startNewRun());
   document.getElementById('win-restart').addEventListener('click', () => {
-    game.destroy();
-    game.restart();
-    setActiveScreen('menu-screen');
-    showStep(1);
+    game.destroy(); game.restart(); setActiveScreen('menu-screen'); showStep(1);
   });
   document.getElementById('lose-restart').addEventListener('click', () => game.startNewRun());
   document.getElementById('lose-menu').addEventListener('click', () => {
-    game.destroy();
-    game.restart();
-    setActiveScreen('menu-screen');
-    showStep(1);
+    game.destroy(); game.restart(); setActiveScreen('menu-screen'); showStep(1);
   });
 
   document.addEventListener('keydown', (event) => {
@@ -123,33 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (game.state === 'decision') {
-      if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        game.digDeeper();
-        return;
-      }
-      if (event.key === 'b' || event.key === 'B' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        game.bank();
-        return;
-      }
+      const lvl = parseInt(event.key, 10);
+      if (lvl >= 1 && lvl <= 4) { event.preventDefault(); game.chooseLevel(lvl); return; }
+      if (event.key === 't' || event.key === 'T' || event.key === ' ') { event.preventDefault(); game.takeTreasure(); return; }
     }
 
     if (ui.gameScreen.classList.contains('active')) {
-      if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') {
-        event.preventDefault();
-        game.rotateView(-1);
-      } else if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        game.rotateView(1);
-      }
+      if (event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') { event.preventDefault(); game.rotateView(-1); }
+      else if (event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') { event.preventDefault(); game.rotateView(1); }
     }
   });
 
   function showStep(stepNumber) {
-    for (let index = 1; index <= 4; index += 1) {
+    for (let index = 1; index <= 3; index += 1) {
       const node = document.getElementById(`setup-step${index}`);
-      node.classList.toggle('hidden', index !== stepNumber);
+      if (node) node.classList.toggle('hidden', index !== stepNumber);
     }
   }
 
@@ -170,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedLexical = topic;
         renderLexicalGrid();
         updateStartButton();
-        showStep(4);
+        showStep(3);
       });
       ui.lexicalGrid.appendChild(button);
     });
@@ -184,11 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
       button.textContent = topic;
       button.classList.toggle('selected-grammar', selectedGrammar.has(topic));
       button.addEventListener('click', () => {
-        if (selectedGrammar.has(topic)) {
-          selectedGrammar.delete(topic);
-        } else {
-          selectedGrammar.add(topic);
-        }
+        if (selectedGrammar.has(topic)) selectedGrammar.delete(topic);
+        else selectedGrammar.add(topic);
         renderGrammarPicker();
         updateStartButton();
       });
@@ -197,19 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateStartButton() {
-    ui.startButton.disabled = !selectedLevel || !selectedLexical || selectedGrammar.size === 0;
+    ui.startButton.disabled = !selectedLexical || selectedGrammar.size === 0;
   }
 
   function buildGameSettings() {
-    if (!selectedLevel || !selectedLexical || selectedGrammar.size === 0) {
-      return null;
-    }
+    if (!selectedLexical || selectedGrammar.size === 0) return null;
     const playerName = ui.playerName.value.trim() || 'Шахтёр';
     try { localStorage.setItem(PLAYER_NAME_KEY, playerName); } catch (_) {}
-
     return {
       playerName,
-      langLevel: selectedLevel,
       lexicalTopic: selectedLexical,
       grammarTopics: Array.from(selectedGrammar)
     };
