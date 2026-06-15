@@ -108,8 +108,23 @@ class Game {
     };
   }
 
+  // Fresh start from the menu: (re)configure the question pool, then boot a run.
   async init(settings) {
     if (settings) this.settings = settings;
+    this.questionManager.configure({
+      lexicalTopic: this.settings.lexicalTopic,
+      grammarTopics: this.settings.grammarTopics
+    });
+    return this._boot();
+  }
+
+  // "Спуститься снова": reuse the existing question pool (correct answers stay
+  // retired, wrong ones are still waiting in the pool) — no reconfigure.
+  startNewRun() {
+    this._boot().catch((error) => console.error('Failed to start run:', error));
+  }
+
+  async _boot() {
     this._disposeRuntime();
     this._clearTimeouts();
     this._resetRunState();
@@ -118,11 +133,6 @@ class Game {
     this._hidePanels();
     this.ui.deathOverlay.classList.remove('active', 'instant');
     this._showLoading('Готовим шахту...');
-
-    this.questionManager.configure({
-      lexicalTopic: this.settings.lexicalTopic,
-      grammarTopics: this.settings.grammarTopics
-    });
 
     this.renderer = new MineRenderer(this.ui.canvas);
     this.audio = new AudioManager();
@@ -141,10 +151,6 @@ class Game {
     this.state = 'decision';
     this._showDecision();
     this._showMessage('Выбери уровень задания. Выше уровень — глубже нырок, но труднее вопрос.', 3000);
-  }
-
-  startNewRun() {
-    this.init(this.settings).catch((error) => console.error('Failed to start run:', error));
   }
 
   _resetRunState() {
@@ -235,6 +241,7 @@ class Game {
     const isCorrect = selectedIndex === this.currentQuestion.options.correctIndex;
 
     if (isCorrect) {
+      this.questionManager.onCorrect();
       this.audio.playCorrect();
       this.audio.playDig();
       this.renderer.swingPickaxe();
@@ -250,6 +257,7 @@ class Game {
       return;
     }
 
+    this.questionManager.onWrong();
     this.audio.playWrong();
     const correct = this.currentQuestion.options.options[this.currentQuestion.options.correctIndex];
     this._showFeedback(false, `Обвал! Правильно: ${correct}`);

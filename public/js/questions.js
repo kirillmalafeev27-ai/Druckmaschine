@@ -78,6 +78,7 @@ class QuestionManager {
     this.pools = Object.create(null);
     this.fetching = Object.create(null);
     this.usedDisplays = new Set();
+    this.lastServed = null;
   }
 
   configure({ lexicalTopic, grammarTopics }) {
@@ -86,29 +87,50 @@ class QuestionManager {
     this.pools = Object.create(null);
     this.fetching = Object.create(null);
     this.usedDisplays = new Set();
+    this.lastServed = null;
   }
 
   prefetch(levels = ['A1', 'A2']) {
     return Promise.allSettled(levels.map((lvl) => this._ensurePool(lvl)));
   }
 
-  // Returns a formatted question for the given CEFR level, or a fallback.
+  // Returns a formatted question for the given CEFR level, or a fallback. The
+  // served question is held as `lastServed` until the game reports the outcome:
+  // a correct answer retires it, a wrong one is put back into the pool.
   async getQuestion(level, difficulty) {
     await this._ensurePool(level);
     const pool = this.pools[level];
 
     if (!pool || pool.length === 0) {
+      this.lastServed = null;
       return this._fallbackQuestion(level);
     }
 
     const raw = pool.shift();
-    this.usedDisplays.add(raw.display);
+    this.lastServed = { level, raw };
 
     if (pool.length <= 2) {
       this._ensurePool(level); // top up in background
     }
 
     return this._formatQuestion(raw, level);
+  }
+
+  // Correct answer: retire the question (exclude it from future generations).
+  onCorrect() {
+    if (!this.lastServed) return;
+    this.usedDisplays.add(this.lastServed.raw.display);
+    this.lastServed = null;
+  }
+
+  // Wrong answer: put the question back so it comes around again.
+  onWrong() {
+    if (!this.lastServed) return;
+    const { level, raw } = this.lastServed;
+    const pool = this.pools[level] || (this.pools[level] = []);
+    const position = Math.floor(Math.random() * (pool.length + 1));
+    pool.splice(position, 0, raw);
+    this.lastServed = null;
   }
 
   _randomGrammarTopic() {
