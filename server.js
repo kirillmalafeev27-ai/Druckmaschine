@@ -3,7 +3,8 @@ const path = require('path');
 const OpenAI = require('openai');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -232,6 +233,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Drucker game running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Drucker game listening on ${HOST}:${PORT}`);
+  console.log(`  process.env.PORT = ${process.env.PORT ?? '(not set, defaulted to 3000)'}`);
+  console.log(`  AITUNNEL_API_KEY = ${process.env.AITUNNEL_API_KEY ? 'set' : 'MISSING'}`);
 });
