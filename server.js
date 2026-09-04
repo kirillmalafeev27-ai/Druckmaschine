@@ -25,6 +25,23 @@ const questionPool = {};
 const TOPIC_RULES = {
   'Infinitiv mit zu': `Verwende NUR Verben, die "zu + Infinitiv" verlangen: versuchen, beginnen, anfangen, aufhören, vorhaben, hoffen, vergessen, planen, sich freuen, Lust haben, Es ist wichtig/möglich/schwer... NIEMALS Modalverben (können, müssen, sollen, wollen, dürfen, mögen) — diese stehen mit Infinitiv OHNE "zu"! Richtig: "Er versucht, den Bahnhof zu finden." | Falsch: "Er kann den Bahnhof zu finden."`,
 
+  'Reflexive Verben': `Reflexivpronomen Akkusativ: mich, dich, sich, uns, euch, sich. Dativ: mir, dir, sich, uns, euch, sich — Akkusativ und Dativ unterscheiden sich NUR in der 1./2. Person Singular (mich/mir, dich/dir)!
+Dativ steht, wenn ein zusätzliches Akkusativobjekt da ist (Körperteil, Kleidung, Gegenstand): "Ich wasche mir die Hände.", "Er putzt sich die Zähne.", "Sie zieht sich den Mantel an.", "Ich kaufe mir ein Buch." Ohne Akkusativobjekt steht Akkusativ: "Ich wasche mich.", "Ich ziehe mich an."
+Echte reflexive Verben (nur mit Reflexivpronomen möglich): sich beeilen, sich erholen, sich freuen (über+Akk / auf+Akk), sich schämen, sich verlieben (in+Akk), sich bedanken (für+Akk), sich erkälten, sich verspäten, sich befinden, sich erinnern (an+Akk), sich interessieren (für+Akk), sich kümmern (um+Akk), sich bewerben (um+Akk), sich ärgern (über+Akk), sich unterhalten (mit+Dat über+Akk).
+Unechte reflexive Verben (auch mit anderem Objekt): sich waschen, sich kämmen, sich anziehen, sich setzen, sich legen, sich verletzen.
+Wortstellung: Reflexivpronomen direkt nach dem finiten Verb ("Ich freue mich auf den Urlaub."). Bei Inversion nach dem Pronomen-Subjekt ("Morgen treffe ich mich mit Anna."), aber VOR einem Nomen-Subjekt ("Morgen trifft sich mein Bruder mit Anna."). Im Nebensatz nach dem Subjekt, Verb am Ende ("..., weil ich mich auf den Urlaub freue."). Perfekt IMMER mit haben: "Ich habe mich beeilt." Mit Modalverb: "Ich muss mich beeilen." Imperativ: "Beeil dich!", "Beeilt euch!", "Beeilen Sie sich!"
+Reziprok (gegenseitig) = Plural + uns/euch/sich, bei Bedarf mit "einander": "Wir treffen uns.", "Sie helfen einander."
+
+AUFGABENDESIGN für dieses Thema — halte dich STRIKT daran:
+- Das Verb steht in ALLEN 4 Optionen in der GLEICHEN, korrekt konjugierten Form. Variiere AUSSCHLIESSLICH das Reflexivpronomen (oder ausschließlich seine Position). Eine falsche Option darf NIEMALS eine falsche Personalendung enthalten — sonst prüft die Aufgabe Konjugation statt Reflexivpronomen.
+- VERBOTEN (klassische Schrott-Aufgabe): "Wir ___ heute Abend im Park." mit den Optionen "treffen sich / treffen uns / trifft euch / trefft uns". Hier verraten Kongruenz und Person die Lösung; man muss die Regel gar nicht kennen.
+- Vermeide Aufgaben, bei denen das Pronomen mechanisch aus dem Subjekt folgt (wir→uns, ihr→euch, ich→mich). Baue stattdessen eine echte Entscheidung ein:
+  1) Dativ vs. Akkusativ in der 1./2. Person Singular: "Ich putze ___ die Zähne." (mir / mich / sich / mir die) — richtig: mir. "Zuerst muss ich ___ waschen, dann ___ die Haare kämmen."
+  2) Wortstellung: "Heute ___ ." mit "trifft sich mein Bruder / trifft mein Bruder sich / ..." oder Nebensatz/Perfekt/Imperativ.
+  3) Rektion echter reflexiver Verben: "Ich interessiere mich ___ Geschichte." (für / an / über / auf), "Sie freut sich ___ das Geschenk."
+  4) sich als 3. Person Sg./Pl. gegen ein flektiertes Pronomen: "Der Junge wäscht ___ ." (sich / ihn / sein / ihm) — richtig: sich.
+- Wenn ein Lernender die Aufgabe allein durch Subjekt-Verb-Kongruenz lösen kann, ist sie Ausschuss — formuliere sie neu.`,
+
   'Modalverben': `Modalverben: können, müssen, sollen, wollen, dürfen, mögen/möchten. Modalverb auf Position 2, Infinitiv am Satzende OHNE "zu"! Richtig: "Er kann den Bahnhof finden." | Falsch: "Er kann den Bahnhof zu finden."`,
 
   'Perfekt': `sein + Partizip II bei: Bewegungsverben (gehen→ist gegangen, fahren→ist gefahren, kommen→ist gekommen, fliegen→ist geflogen, laufen→ist gelaufen), Zustandsänderung (einschlafen→ist eingeschlafen, aufwachen, sterben, werden, bleiben). haben + Partizip II bei ALLEN anderen Verben (machen→hat gemacht, essen→hat gegessen, lesen→hat gelesen). Partizip II: ge-...-t (regelmäßig: gemacht, gekauft), ge-...-en (unregelmäßig: gegangen, geschrieben). Verben auf -ieren: KEIN ge- (studiert, telefoniert). Trennbare: ge- zwischen Präfix und Stamm (ein·ge·kauft, auf·ge·standen). Untrennbare (be-, er-, ver-, ent-, zer-, emp-, miss-): KEIN ge- (besucht, verstanden, erzählt).`,
@@ -70,6 +87,28 @@ const TOPIC_RULES = {
   'Nominativ': `Subjekt im Nominativ. Prädikativ nach sein/werden/bleiben ebenfalls Nominativ. Richtig: "Der Mann ist ein guter Lehrer." | Falsch: "Der Mann ist einen guten Lehrer."`,
 };
 
+// Der Client sendet ASCII-transliterierte Themennamen ("Praesens", "Relativsaetze"),
+// die Regeln stehen unter den deutschen Schreibweisen. Über eine normalisierte
+// Suche greifen beide Varianten auf dieselbe Regel zu.
+function normalizeTopic(topic) {
+  return String(topic)
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+const TOPIC_RULES_INDEX = Object.create(null);
+for (const [key, value] of Object.entries(TOPIC_RULES)) {
+  TOPIC_RULES_INDEX[normalizeTopic(key)] = value;
+}
+
+function getTopicRule(topic) {
+  return TOPIC_RULES_INDEX[normalizeTopic(topic)] || '';
+}
+
 function isValidQuestion(q) {
   return (
     q &&
@@ -113,7 +152,7 @@ app.post('/api/generate-questions', async (req, res) => {
     excludeNote = `\nVerwende diese Sätze NICHT: ${short}`;
   }
 
-  const topicRule = TOPIC_RULES[grammarTopic] || '';
+  const topicRule = getTopicRule(grammarTopic);
 
   let taskDescription;
   if (isWortstellung) {
@@ -165,6 +204,9 @@ KRITISCHE REGELN (Verstoß = Ausschuss):
 5. "correct" — Index der korrekten Antwort (0–3). GLEICHMÄSSIG über die Positionen verteilen.
 6. Alle ${questionsCount} Sätze EINZIGARTIG: verschiedene Subjekte, Verben, Situationen. Keine Eintönigkeit.
 7. Verwende lebendige, natürliche Sätze wie in den Lehrbüchern Schritte, Menschen, Aspekte.
+8. ISOLIERE DAS ZIELPHÄNOMEN: Alle 4 Optionen müssen sich AUSSCHLIESSLICH in dem Merkmal unterscheiden, das das Thema "${grammarTopic}" prüft. Alles andere — Verbkonjugation, Personalendung, Zeitform, Wortwahl, Satzbau — bleibt in allen 4 Optionen IDENTISCH und KORREKT. Eine falsche Option, die schon an einem themenfremden Fehler scheitert, ist wertlos.
+9. KEINE GESCHENKTEN AUFGABEN: Die richtige Antwort darf NICHT allein aus Subjekt-Verb-Kongruenz, aus der Person des Subjekts oder aus dem Bauchgefühl ableitbar sein. Stelle dir einen Lernenden vor, der "${grammarTopic}" NICHT beherrscht: Wenn er die Aufgabe trotzdem lösen kann, ist sie Ausschuss — formuliere sie neu, sodass eine echte grammatische Entscheidung nötig ist.
+10. KEINE MECHANISCHEN AUFGABEN: Wenn die Lösung nur ein 1:1-Abgleich mit dem Subjekt ist (ohne Kasus-, Positions- oder Rektionsentscheidung), erhöhe den Anspruch — wähle eine Form, Position oder Rektion, bei der man wirklich nachdenken muss.
 
 QUALITÄTSKONTROLLE — prüfe JEDE Übung BEVOR du sie ausgibst:
 1. Setze die korrekte Option in den Satz ein → ist er grammatisch PERFEKT? Kasus, Genus, Numerus, Konjugation, Wortstellung — alles korrekt?
@@ -172,6 +214,8 @@ QUALITÄTSKONTROLLE — prüfe JEDE Übung BEVOR du sie ausgibst:
 3. Gibt es GENAU EINE korrekte Antwort? Wenn zwei Optionen korrekt sein könnten → Übung neu formulieren!
 4. Passt die Übung zum Thema "${grammarTopic}" und zum Niveau ${level}?
 5. Sind die Sätze natürlich und vollständig?
+6. Unterscheiden sich die 4 Optionen NUR im Zielphänomen von "${grammarTopic}"? Enthält eine falsche Option zusätzlich einen themenfremden Fehler (z.B. falsche Personalendung) → Optionen neu bauen!
+7. Ist die Aufgabe ohne Kenntnis der Regel lösbar (z.B. durch Kongruenz mit dem Subjekt)? Wenn ja → Übung verwerfen und eine anspruchsvollere formulieren!
 
 Antworte NUR mit einem validen JSON-Array, KEIN Markdown, KEINE Erklärungen:
 [{"text":"Anweisung auf Russisch","display":"Deutscher Text","options":["A","B","C","D"],"correct":0}]`;
