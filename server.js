@@ -84,6 +84,134 @@ AUFGABENDESIGN für dieses Thema — halte dich STRIKT daran:
 
   'Artikel': `Bestimmt: der (m), die (f), das (n), die (Pl). Unbestimmt: ein (m/n), eine (f). Genus-Regeln: -ung/-heit/-keit/-schaft/-tion/-tät → die. -chen/-lein → das. -er/-ling → oft der.`,
 
+  'Trennbare Verben': `Trennbare Präfixe (BETONT): ab-, an-, auf-, aus-, bei-, ein-, mit-, nach-, vor-, zu-, zurück-, weg-, los-, her-, hin-, fest-, teil-, statt-, vorbei-, weiter-. Untrennbare Präfixe (unbetont): be-, ge-, er-, ver-, zer-, ent-, emp-, miss-. Wechselnd je nach Bedeutung: durch-, über-, um-, unter-, wider-, wieder-.
+Hauptsatz (Präsens/Präteritum): Präfix ans SATZENDE: "Ich stehe jeden Tag um 7 Uhr auf." | Falsch: "Ich aufstehe um 7 Uhr."
+Nebensatz: wieder zusammen, am Ende: "..., weil ich um 7 Uhr aufstehe." | Falsch: "..., weil ich um 7 Uhr stehe auf."
+Perfekt: ge- ZWISCHEN Präfix und Stamm: aufgestanden, eingekauft, angerufen, mitgekommen. Untrennbare: KEIN ge- (besucht, verstanden).
+Mit Modalverb: Infinitiv zusammen am Ende: "Ich muss früh aufstehen." Mit zu: zu zwischen Präfix und Stamm, EIN Wort: "Ich habe vor, früh aufzustehen." | Falsch: "... früh zu aufstehen."
+Imperativ: "Steh auf!", "Ruf mich an!", "Kommt mit!"
+AUFGABENDESIGN: Die Lücke prüft die POSITION des Präfixes bzw. die Form (aufgestanden / aufzustehen / aufstehen). Alle 4 Optionen enthalten dasselbe Verb in derselben Person — variiere NUR Trennung, ge-Stellung oder zu-Stellung, niemals die Personalendung.`,
+
+  'Verben mit Präpositionen': `Feste Verb-Präposition-Verbindungen — Präposition UND Kasus muss man auswendig lernen.
+Akkusativ: warten auf, denken an, sich erinnern an, sich freuen auf (Zukunft) / über (Gegenwart+Vergangenheit), sich interessieren für, sich kümmern um, bitten um, sich bewerben um, sich ärgern über, sprechen über, achten auf, sich verlassen auf, sich vorbereiten auf, stolz sein auf, böse sein auf.
+Dativ: teilnehmen an, leiden unter, träumen von, abhängen von, fragen nach, suchen nach, helfen bei, sich beschäftigen mit, sich treffen mit, gehören zu, zufrieden sein mit, einverstanden sein mit, Angst haben vor, sich fürchten vor.
+Präpositionaladverb bei SACHEN: da(r)- + Präposition — darauf, daran, darüber, dafür, damit, davon: "Ich warte darauf." Bei PERSONEN: Präposition + Pronomen: "Ich warte auf ihn." | Falsch: "Ich warte darauf." (wenn eine Person gemeint ist)
+Fragewort bei Sachen: wo(r)- + Präposition — worauf, woran, worüber, wofür. Bei Personen: "Auf wen wartest du?"
+Richtig: "Ich denke oft an meine Großmutter." | Falsch: "Ich denke oft über meine Großmutter."
+AUFGABENDESIGN: Prüfe Präposition UND Kasus gemeinsam (z.B. "Ich warte ___ Bus." → auf den / auf dem / an den / für den). Verb, Nomen und Satzbau bleiben in allen 4 Optionen gleich.`,
+
+  'Lassen': `Vier Bedeutungen: 1) ERLAUBEN: "Meine Eltern lassen mich abends ausgehen." 2) VERANLASSEN (jemand anders macht es): "Ich lasse mein Auto reparieren." (nicht ich repariere!) 3) ZURÜCKLASSEN/VERGESSEN: "Ich habe meinen Schlüssel zu Hause gelassen." 4) sich lassen = Passiv-Ersatz (= können + Passiv): "Das Fenster lässt sich nicht öffnen." (= kann nicht geöffnet werden)
+Konjugation: ich lasse, du lässt, er/sie/es lässt, wir lassen, ihr lasst, sie lassen. Präteritum: ließ.
+Satzbau: lassen auf Position 2, Infinitiv am Satzende OHNE "zu": "Er lässt seine Haare schneiden." | Falsch: "Er lässt seine Haare zu schneiden."
+Perfekt MIT Infinitiv → Ersatzinfinitiv "lassen", NICHT "gelassen": "Ich habe mein Auto reparieren lassen." | Falsch: "Ich habe mein Auto reparieren gelassen."
+Perfekt OHNE Infinitiv → "gelassen": "Ich habe die Tasche im Auto gelassen."
+Imperativ: "Lass uns gehen!" (du), "Lasst uns gehen!" (ihr), "Lassen Sie uns gehen!"`,
+
+  'N-Deklination': `Maskuline Nomen, die in ALLEN Fällen außer dem Nominativ Singular die Endung -n/-en bekommen.
+Gruppe 1 — Maskulina auf -e: der Junge, der Kunde, der Kollege, der Neffe, der Zeuge, der Löwe, der Affe, der Russe, der Franzose, der Grieche.
+Gruppe 2 — Personenbezeichnungen auf -ent, -ant, -ist, -at, -oge, -graf, -soph, -arch: der Student, der Praktikant, der Journalist, der Polizist, der Tourist, der Soldat, der Kandidat, der Biologe, der Fotograf, der Philosoph.
+Gruppe 3 — Einzelfälle: der Mensch, der Nachbar, der Bauer, der Held, der Herr (Singular -n: dem Herrn / Plural -en: die Herren).
+Formen: Nom. der Student | Akk. den Studenten | Dat. dem Studenten | Gen. des Studenten.
+Gemischte Deklination (zusätzlich -s im Genitiv): der Name → des Namens, der Gedanke → des Gedankens, der Buchstabe, das Herz (n!) → des Herzens.
+Die Endung steht AUCH nach Präpositionen: "mit meinem Kollegen", "für den Studenten", "ohne meinen Nachbarn", "Ich helfe dem Jungen."
+Richtig: "Ich kenne den Studenten." | Falsch: "Ich kenne den Student."
+NICHT n-Deklination: der Lehrer, der Arzt, der Freund, der Mann, der Sohn — diese bleiben unverändert. Falsch: "Ich kenne den Lehreren."
+AUFGABENDESIGN: In allen 4 Optionen bleibt der Artikel im richtigen Kasus — variiere NUR die Nomen-Endung, oder prüfe Artikel + Endung gemeinsam. Verwende überwiegend echte n-Deklination-Nomen.`,
+
+  'Pronomen': `Personalpronomen — Nom: ich, du, er, sie, es, wir, ihr, sie/Sie. Akk: mich, dich, ihn, sie, es, uns, euch, sie/Sie. Dat: mir, dir, ihm, ihr, ihm, uns, euch, ihnen/Ihnen.
+Das Pronomen richtet sich nach dem GRAMMATISCHEN Genus des Nomens, nicht nach dem Geschlecht: "Das Mädchen ist nett, es wohnt nebenan." "Wo ist der Tisch? — Ich habe ihn verkauft." "Wie findest du die Jacke? — Ich finde sie schön."
+Der Kasus kommt vom Verb bzw. der Präposition im Satz: "Ich helfe ihm." (helfen + Dat) | "Ich sehe ihn." (sehen + Akk) | "ohne mich" (Akk), "mit mir" (Dat).
+WORTSTELLUNG: Pronomen stehen VOR Nomen: "Ich gebe ihm das Buch." / "Ich gebe es dem Mann." Zwei Pronomen: AKKUSATIV vor DATIV: "Ich gebe es ihm." | Falsch: "Ich gebe ihm es."
+Indefinitpronomen: man (Nom.) – einen (Akk.) – einem (Dat.): "Wenn man müde ist, hilft einem Kaffee." jemand/niemand, etwas/nichts, alle/alles, jeder/jede/jedes.
+Demonstrativpronomen: dieser/diese/dieses (Endungen wie der/die/das), betontes der/die/das: "Den kenne ich!"
+AUFGABENDESIGN: Der Kasus muss aus dem Verb oder der Präposition ableitbar sein, nicht aus der Person. Alle 4 Optionen enthalten Pronomen derselben Person in verschiedenen Kasus/Genera — variiere nie das Verb.`,
+
+  'Possessivpronomen': `Stämme: ich→mein, du→dein, er/es→sein, sie(Sg.)→ihr, wir→unser, ihr→euer, sie(Pl.)→ihr, Sie→Ihr.
+ZWEI unabhängige Entscheidungen: der BESITZER bestimmt den STAMM (sein/ihr), das BESESSENE NOMEN bestimmt die ENDUNG (Kasus, Genus, Numerus)!
+Endungen wie bei ein/kein: Nom. m mein / f meine / n mein / Pl. meine. Akk. m meinen / f meine / n mein / Pl. meine. Dat. m meinem / f meiner / n meinem / Pl. meinen (+n am Nomen). Gen. m meines / f meiner / n meines / Pl. meiner.
+Richtig: "Die Frau sucht ihren Mann." (ihr- weil die Frau besitzt; -en weil "den Mann" Akk. maskulin) | Falsch: "Die Frau sucht seinen Mann." (falscher Besitzer) | Falsch: "Die Frau sucht ihre Mann." (falsche Endung)
+Richtig: "Der Mann spielt mit seiner Tochter." (Dat. feminin) | Falsch: "... mit seine Tochter."
+euer VERLIERT das -e-, sobald eine Endung kommt: euer Vater, aber eure Mutter, euren Bruder, eurem Kind. | Falsch: "euere Mutter", "eueren Bruder".
+unser behält das -e-: unsere Mutter, unseren Vater, unserem Kind.
+AUFGABENDESIGN: Der Satz muss BEIDE Entscheidungen erzwingen — Besitzer und Kasus dürfen sich nicht decken. Nimm ein Subjekt in der 3. Person (er/sie) und ein Nomen in einem anderen Kasus als Nominativ. Die 4 Optionen: richtiger Stamm + richtige Endung, richtiger Stamm + falsche Endung, falscher Stamm + richtige Endung, falscher Stamm + falsche Endung.`,
+
+  'Steigerung': `Positiv – Komparativ (+ -er) – Superlativ (am + -sten / der/die/das + -ste): schnell – schneller – am schnellsten.
+UMLAUT bei den meisten einsilbigen Adjektiven: alt–älter–am ältesten, jung, lang, kurz, warm, kalt, stark, schwach, hart, klug, dumm, oft, arm. KEIN Umlaut bei: schlank, klar, voll, froh, bunt, laut, flach, rasch, sanft.
+Unregelmäßig: gut–besser–am besten | viel–mehr–am meisten | gern–lieber–am liebsten | hoch–höher–am höchsten | nah–näher–am nächsten | groß–größer–am größten | teuer–teurer–am teuersten | dunkel–dunkler.
+Nach -d, -t, -s, -ß, -z, -sch kommt -esten: am ältesten, am kürzesten, am heißesten, am hübschesten.
+VERGLEICH: Gleichheit "(genau)so ... wie": "Er ist so groß wie ich." Ungleichheit Komparativ + "als": "Er ist größer als ich." | Falsch: "Er ist größer wie ich."
+NIEMALS "mehr + Adjektiv" wie im Englischen: Falsch: "Er ist mehr interessant." Richtig: "Er ist interessanter."
+Vor dem Nomen wird gesteigertes Adjektiv DEKLINIERT: der schnellere Zug, ein schnellerer Zug, der schnellste Zug, mit dem schnellsten Zug. | Falsch: "der schneller Zug".
+AUFGABENDESIGN: Alle 4 Optionen beziehen sich auf dasselbe Adjektiv — variiere Steigerungsstufe, Umlaut, Vergleichspartikel (als/wie) oder Deklinationsendung.`,
+
+  'Lokale Präpositionen': `WO? (Position, Dativ): in der Stadt, an der Wand, auf dem Tisch, bei meinen Eltern, neben dem Haus, hinter der Schule, vor dem Kino, unter dem Bett, über dem Sofa, zwischen den Häusern, gegenüber dem Bahnhof.
+WOHIN? (Richtung): nach + Städte/Länder OHNE Artikel: "Ich fahre nach Berlin / nach Italien." | zu + Personen, Institutionen, Gebäude als Ziel: "Ich gehe zum Arzt / zur Schule / zu meiner Oma." | in + Länder MIT Artikel und geschlossene Räume (Akkusativ!): "in die Schweiz, in die Türkei, in die USA, ins Kino, in die Schule (hinein)." | auf + öffentliche Plätze/Ämter: "auf die Post, auf den Markt, auf die Bank." | an + Gewässer/Grenzflächen: "ans Meer, an den Strand, an die Wand."
+WOHER? aus (Herkunft, aus geschlossenem Raum): "Ich komme aus Polen / aus dem Haus." | von (von einem Ort/einer Person weg): "Ich komme von der Arbeit / von meiner Oma."
+bei = Aufenthalt bei Personen oder Firmen: "Ich wohne bei meinen Eltern." "Ich arbeite bei Siemens."
+Richtig: "Ich fahre nach Berlin." | Falsch: "Ich fahre in Berlin." (das ist WO) | Richtig: "Ich bin in Berlin."
+Richtig: "Ich gehe zum Arzt." | Falsch: "Ich gehe nach dem Arzt." / "Ich gehe in den Arzt."
+Richtig: "Ich gehe in die Schule." (wohin, Akk.) | "Ich bin in der Schule." (wo, Dat.)`,
+
+  'Temporale Präpositionen': `um + Uhrzeit: "um 8 Uhr", "um Mitternacht".
+am + Wochentag, Datum, Tageszeit: "am Montag, am 3. Mai, am Morgen, am Abend, am Wochenende". AUSNAHME: "in der Nacht".
+im + Monat, Jahreszeit: "im Mai, im Sommer, im Winter".
+Jahreszahl OHNE Präposition oder mit "im Jahr": "1990" / "im Jahr 1990". | Falsch: "in 1990" (Anglizismus!).
+seit + Dativ (begann in der Vergangenheit, dauert an; Verb im PRÄSENS!): "Ich lerne seit zwei Jahren Deutsch." | Falsch: "Ich lernte seit zwei Jahren..."
+vor + Dativ (Zeitpunkt in der Vergangenheit): "vor drei Tagen, vor einem Jahr".
+in + Dativ (Zeitpunkt in der Zukunft): "in einer Woche, in zwei Stunden".
+für + Akkusativ (geplante Dauer): "Ich fahre für zwei Wochen nach Spanien."
+ab + Dativ (Beginn), von ... bis (Zeitraum), bis + Akkusativ, nach + Dativ, während + Genitiv, zwischen + Dativ, gegen + Akkusativ (ungefähr: "gegen 8 Uhr").
+Ohne Präposition: jeden Tag, letzte Woche, nächstes Jahr, diesen Monat (Akkusativ!).
+Richtig: "Am Montag habe ich frei." | Falsch: "In Montag habe ich frei."
+Richtig: "Ich wohne seit 2020 hier." | Falsch: "Ich wohne für 2020 hier."`,
+
+  'Satzklammer': `Das Prädikat wird auf ZWEI Positionen verteilt; dazwischen liegt das Mittelfeld.
+LINKE KLAMMER (Position 2): finites Verb — Modalverb, Hilfsverb (haben/sein/werden) oder Vollverb.
+RECHTE KLAMMER (Satzende): Infinitiv, Partizip II, trennbares Präfix oder Prädikatsteil.
+"Ich [habe] gestern lange mit meiner Schwester [telefoniert]." | "Ich [muss] morgen sehr früh [aufstehen]." | "Ich [stehe] jeden Tag um sechs [auf]." | "Er [wird] nächstes Jahr in Berlin [studieren]." | "Sie [hat] das Buch [lesen wollen]."
+NEBENSATZ: Die Klammer schließt sich am Ende, das finite Verb steht GANZ hinten: "..., weil ich gestern lange telefoniert habe." | "..., weil ich morgen früh aufstehen muss."
+MITTELFELD (TeKaMoLo): Subjekt – Dativobjekt – TEmporal (wann) – KAusal (warum) – MOdal (wie) – LOkal (wo) – Akkusativobjekt. Pronomen rücken nach vorn, direkt hinter das finite Verb.
+Hinter die rechte Klammer gehört NICHTS (Ausnahme Nachfeld: Vergleiche mit als/wie, Nebensätze).
+Richtig: "Ich muss morgen früh aufstehen." | Falsch: "Ich muss aufstehen morgen früh."
+Richtig: "Ich habe ihr gestern ein Buch geschenkt." | Falsch: "Ich habe geschenkt ihr gestern ein Buch."`,
+
+  'Indirekte Fragen': `Indirekte Fragen sind NEBENSÄTZE: finites Verb am ENDE, KEINE Inversion.
+Mit W-Wort (wer, was, wo, wann, wie, warum, welcher, wie viel): "Wo wohnst du?" → "Ich weiß nicht, wo du wohnst." | Falsch: "Ich weiß nicht, wo wohnst du."
+Ja/Nein-Frage → Einleitung mit "ob": "Kommst du mit?" → "Ich frage, ob du mitkommst." | Falsch: "Ich frage, ob kommst du mit."
+NIEMALS "wenn" statt "ob"! Falsch: "Ich weiß nicht, wenn er kommt." Richtig: "Ich weiß nicht, ob er kommt." (= Ja/Nein) oder "..., wann er kommt." (= Zeitpunkt).
+Einleitungen: Ich weiß nicht, ... | Können Sie mir sagen, ... | Ich möchte wissen, ... | Er fragt, ... | Weißt du, ...
+Fragezeichen nur, wenn der GANZE Satz eine Frage ist: "Weißt du, wo er wohnt?" aber "Ich weiß nicht, wo er wohnt."
+Trennbare Verben und Perfekt im Nebensatz: "Ich frage, ob er mitkommt." / "Ich weiß nicht, wann sie angekommen ist."
+AUFGABENDESIGN: Prüfe entweder die Einleitung (ob/wenn/wann/dass) oder die Wortstellung im Nebensatz — beides mit identischem Wortmaterial in allen 4 Optionen.`,
+
+  'Plusquamperfekt': `Bildung: hatte/war (Präteritum von haben/sein) + Partizip II. Bedeutung: VORZEITIGKEIT — eine Handlung liegt VOR einer anderen Handlung in der Vergangenheit.
+hatte, hattest, hatte, hatten, hattet, hatten | war, warst, war, waren, wart, waren.
+Hilfsverb-Wahl wie im Perfekt: sein bei Bewegung und Zustandsänderung (war gegangen, war gefahren, war eingeschlafen), haben bei allen anderen (hatte gemacht, hatte gegessen).
+Typische Konstruktion mit "nachdem": Nebensatz im Plusquamperfekt + Hauptsatz im Präteritum/Perfekt: "Nachdem ich gegessen hatte, ging ich spazieren." | Falsch: "Nachdem ich gegessen habe, ging ich spazieren." | Falsch: "Nachdem ich gegessen hatte, gehe ich spazieren."
+Auch mit: als, bevor, schon, zuerst: "Der Zug war schon abgefahren, als wir am Bahnhof ankamen."
+Im Nebensatz steht das Hilfsverb am ENDE: "..., weil er den Schlüssel vergessen hatte."
+Richtig: "Ich hatte den Film schon gesehen, deshalb ging ich nicht ins Kino." | Falsch: "Ich habe den Film schon gesehen gehabt."`,
+
+  'Doppelkonjunktionen': `sowohl ... als auch (beides): "Er spricht sowohl Englisch als auch Spanisch."
+entweder ... oder (eins von beiden): "Wir gehen entweder ins Kino oder ins Theater." Am Satzanfang mit Inversion: "Entweder gehen wir ins Kino, oder wir bleiben zu Hause."
+weder ... noch (keins von beiden) — KEINE zusätzliche Verneinung: "Er trinkt weder Kaffee noch Tee." | Falsch: "Er trinkt nicht weder Kaffee noch Tee."
+nicht nur ... sondern auch: "Sie ist nicht nur klug, sondern auch fleißig." (Komma vor sondern!)
+zwar ... aber (Einschränkung): "Die Wohnung ist zwar klein, aber sehr gemütlich."
+einerseits ... andererseits (zwei Seiten): "Einerseits will ich reisen, andererseits fehlt mir das Geld."
+je ... desto/umso: "je" leitet einen NEBENSATZ ein (Verb am Ende), "desto/umso" einen Hauptsatz mit INVERSION, beide mit Komparativ: "Je mehr ich lerne, desto besser verstehe ich." | Falsch: "Je mehr ich lerne, desto ich verstehe besser." | Falsch: "Je ich mehr lerne, ..."
+PARALLELITÄT: Beide Teile müssen dieselbe grammatische Struktur verbinden (zwei Nomen, zwei Verben, zwei Sätze). Falsch: "Er ist sowohl klug als auch er arbeitet viel."`,
+
+  'als vs. wenn': `EINMALIGES Ereignis in der VERGANGENHEIT → als: "Als ich zehn Jahre alt war, zog meine Familie nach Berlin." "Als ich gestern nach Hause kam, regnete es."
+WIEDERHOLUNG in der Vergangenheit (immer wenn / jedes Mal wenn) → wenn: "Immer wenn wir Ferien hatten, fuhren wir ans Meer."
+GEGENWART und ZUKUNFT (jedes Mal / falls) → wenn: "Wenn ich Zeit habe, lese ich." "Wenn es morgen regnet, bleiben wir zu Hause."
+FRAGE nach dem Zeitpunkt (direkt und indirekt) → wann: "Wann kommst du?" "Ich weiß nicht, wann er kommt."
+MERKSATZ: einmal + Vergangenheit → als | alles andere → wenn | Frage → wann.
+Alle drei leiten Nebensätze ein: finites Verb am ENDE (Ausnahme: "wann" in der direkten Frage). Steht der Nebensatz vorn, folgt im Hauptsatz INVERSION: "Als er kam, schliefen alle schon."
+Falsch: "Wenn ich ein Kind war, wohnte ich in Moskau." (einmaliger Zeitraum in der Vergangenheit → als)
+Falsch: "Ich weiß nicht, wenn der Film beginnt." (Frage nach dem Zeitpunkt → wann)
+Falsch: "Als ich morgen Zeit habe, rufe ich dich an." (Zukunft → wenn)
+AUFGABENDESIGN: Der Satz muss die Entscheidung erzwingen — die Zeitform und das Signalwort (einmal/immer/morgen/gestern) müssen eindeutig auf genau eine Lösung zeigen. Optionen: als / wenn / wann / (bei Bedarf) während oder ob.`,
+
   'Nominativ': `Subjekt im Nominativ. Prädikativ nach sein/werden/bleiben ebenfalls Nominativ. Richtig: "Der Mann ist ein guter Lehrer." | Falsch: "Der Mann ist einen guten Lehrer."`,
 };
 
