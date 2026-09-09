@@ -1,5 +1,6 @@
 const GRAMMAR_TOPICS = [
   'Praesens',
+  'Verben mit Vokalwechsel',
   'Perfekt',
   'Praeteritum',
   'Futur I',

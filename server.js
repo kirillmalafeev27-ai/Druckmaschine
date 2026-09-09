@@ -78,6 +78,16 @@ AUFGABENDESIGN für dieses Thema — halte dich STRIKT daran:
 
   'Präsens': `Konjugation: -e, -st, -t, -en, -t, -en. Stammvokalwechsel (2./3. Sg.): e→i (sprechen→spricht, helfen→hilft), e→ie (lesen→liest, sehen→sieht), a→ä (fahren→fährt, schlafen→schläft). Verben auf -ten/-den: Bindevokal -e- (du arbeitest, er arbeitet).`,
 
+  'Verben mit Vokalwechsel': `Starke Verben wechseln im PRÄSENS den Stammvokal, aber NUR in der 2. und 3. Person Singular (du, er/sie/es). Bei ich, wir, ihr, sie/Sie bleibt der Stamm unverändert.
+e→i: sprechen→du sprichst, er spricht | helfen→du hilfst, er hilft | geben→du gibst, er gibt | nehmen→du nimmst, er nimmt | essen→du isst, er isst | treffen→du triffst, er trifft | vergessen→du vergisst, er vergisst | werfen→er wirft | sterben→er stirbt | brechen→er bricht.
+e→ie: lesen→du liest, er liest | sehen→du siehst, er sieht | empfehlen→du empfiehlst, er empfiehlt | stehlen→er stiehlt | geschehen→es geschieht.
+a→ä: fahren→du fährst, er fährt | schlafen→du schläfst, er schläft | tragen→du trägst, er trägt | halten→du hältst, er hält | fallen→er fällt | gefallen→es gefällt | lassen→du lässt, er lässt | waschen→er wäscht | raten→er rät | backen→er bäckt.
+au→äu: laufen→du läufst, er läuft. o→ö: stoßen→du stößt, er stößt.
+Falsch: "ich spriche" (richtig: ich spreche), "wir fähren" (richtig: wir fahren), "ihr nimmt" (richtig: ihr nehmt), "sie siehen" (richtig: sie sehen).
+Imperativ du: e→i/ie BLEIBT, ohne -e und ohne Pronomen — "Sprich!", "Lies!", "Nimm!", "Gib!". a→ä fällt WEG — "Fahr!", "Schlaf!", "Trag!" (nicht "Fähr!").
+Modalverben sowie Präteritum- und Partizipformen gehören NICHT zu diesem Thema.
+AUFGABENDESIGN: Das Subjekt steht IMMER in der 2. oder 3. Person Singular — nur dort ist der Wechsel sichtbar; ein Satz mit "ich" oder "wir" prüft das Thema nicht. Die Lücke prüft AUSSCHLIESSLICH den Stammvokal: alle Optionen tragen dasselbe Verb in derselben Person und mit derselben, korrekten Personalendung und unterscheiden sich NUR im Vokal. Richtig: "Du ___ viel zu schnell." mit den Optionen "fährst / fahrst / fuhrst / führst". Richtig: "Er ___ jeden Abend mit dem Kapitän." mit den Optionen "spricht / sprecht / spracht / sprächt". Falsch, weil die Endung die Lösung verrät: "Du ___ den Koffer." mit den Optionen "trägst / tragt / trage / trugen".`,
+
   'Futur I': `werden + Infinitiv. werden: werde, wirst, wird, werden, werdet, werden. Richtig: "Ich werde morgen kommen." | Falsch: "Ich werde morgen zu kommen."`,
 
   'Imperativ': `du: Stamm (+e optional): "Komm!", "Mach!". e→i/ie bleibt: "Sprich!", "Lies!", "Nimm!" (KEIN -st, KEIN Pronomen). a→ä fällt weg: "Fahr!" (nicht "Fähr!"). ihr: wie Präsens ohne "ihr": "Kommt!", "Lest!". Sie: Infinitiv + Sie: "Kommen Sie!", "Lesen Sie!"`,
