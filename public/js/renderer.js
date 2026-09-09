@@ -1680,7 +1680,10 @@ class CrusherRoomRenderer {
 
     const loop = () => {
       this.animationId = requestAnimationFrame(loop);
-      const delta = this.clock.getDelta();
+      // Coming back from the background on iOS hands us the whole time away in
+      // one delta, which fast-forwards doors, shake and timers in a single
+      // frame. Cap it at ~3 frames' worth so the resume looks like a pause.
+      const delta = Math.min(this.clock.getDelta(), 0.05);
       updateCallback(delta);
       this._animate(delta);
       this.renderer.render(this.scene, this.camera);

@@ -7,6 +7,7 @@ class AudioManager {
     this.nodes = [];
     this.intervals = [];
     this.initialized = false;
+    this._resumeGuard = null;
   }
 
   init() {
@@ -24,6 +25,7 @@ class AudioManager {
     if (this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }
+    this._installResumeGuard();
 
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.3;
@@ -293,7 +295,36 @@ class AudioManager {
     this.intervals.push(interval);
   }
 
+  // iOS suspends the AudioContext when the tab goes to the background or the
+  // phone locks, and never resumes it on its own — the game came back silent.
+  // Nudge it on every return, and on the next touch in case the return alone
+  // does not count as the user gesture Safari wants.
+  _installResumeGuard() {
+    if (this._resumeGuard) return;
+    const resume = () => {
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    };
+    this._resumeGuard = resume;
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('pageshow', resume);
+    window.addEventListener('focus', resume);
+    document.addEventListener('touchend', resume, { passive: true });
+    document.addEventListener('pointerdown', resume, { passive: true });
+  }
+
+  _removeResumeGuard() {
+    if (!this._resumeGuard) return;
+    const resume = this._resumeGuard;
+    document.removeEventListener('visibilitychange', resume);
+    window.removeEventListener('pageshow', resume);
+    window.removeEventListener('focus', resume);
+    document.removeEventListener('touchend', resume);
+    document.removeEventListener('pointerdown', resume);
+    this._resumeGuard = null;
+  }
+
   dispose() {
+    this._removeResumeGuard();
     this.intervals.forEach((intervalId) => clearInterval(intervalId));
     this.intervals = [];
 

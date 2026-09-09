@@ -23,7 +23,13 @@ body {
   overflow: hidden;
   width: 100vw;
   height: 100vh;
-  touch-action: none;
+  /* iOS Safari counts the address bar into 100vh, so the bottom of the layout
+     ends up under the browser chrome. dvh tracks the visible area instead. */
+  height: 100dvh;
+  /* "none" here also disabled panning inside every scrollable panel, which left
+     the menu unreachable on short screens. "manipulation" keeps scrolling and
+     still drops the double-tap zoom; the canvas turns panning off for itself. */
+  touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -40,12 +46,19 @@ input {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .screen.active {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Centred flex content that outgrows the screen loses its top edge to the
+     scroll origin; "safe" falls back to start alignment before that happens.
+     The plain values above stay as the fallback for browsers without it. */
+  align-items: safe center;
+  justify-content: safe center;
 }
 
 #game-screen {
@@ -340,6 +353,8 @@ input {
   margin-bottom: 20px;
   max-height: 200px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 8px;
   background: rgba(14, 12, 12, 0.92);
   border-radius: 8px;
@@ -386,6 +401,7 @@ input {
   height: 100%;
   display: block;
   cursor: grab;
+  touch-action: none;
 }
 
 #game-canvas:active {
