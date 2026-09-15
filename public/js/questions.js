@@ -16,6 +16,8 @@ const GRAMMAR_TOPICS = [
   'Genitiv',
   'N-Deklination',
   'Pronomen',
+  'Pronomen in Akkusativ',
+  'Pronomen in Dativ',
   'Possessivpronomen',
   'Adjektivdeklination',
   'Steigerung',
