@@ -222,6 +222,21 @@ Falsch: "Ich weiß nicht, wenn der Film beginnt." (Frage nach dem Zeitpunkt → 
 Falsch: "Als ich morgen Zeit habe, rufe ich dich an." (Zukunft → wenn)
 AUFGABENDESIGN: Der Satz muss die Entscheidung erzwingen — die Zeitform und das Signalwort (einmal/immer/morgen/gestern) müssen eindeutig auf genau eine Lösung zeigen. Optionen: als / wenn / wann / (bei Bedarf) während oder ob.`,
 
+  'Pronomen in Akkusativ': `Personalpronomen im Akkusativ: ich→mich, du→dich, er→ihn, sie→sie, es→es, wir→uns, ihr→euch, sie/Sie→sie/Sie. Sichtbar vom Nominativ unterscheiden sich nur mich, dich, ihn.
+Akkusativ steht nach transitiven Verben (sehen, kennen, fragen, besuchen, brauchen, verstehen, anrufen, treffen, einladen, abholen, suchen, finden, lieben, vergessen) und nach den Akkusativpräpositionen durch, für, gegen, ohne, um, bis, entlang: "ohne mich", "für dich", "gegen ihn".
+Das Genus folgt dem GRAMMATISCHEN Geschlecht des Bezugsnomens, nicht dem natürlichen: der Tisch → ihn, die Jacke → sie, das Buch → es, das Mädchen → es. Richtig: "Wo ist der Schlüssel? — Ich habe ihn verloren." | "Das Mädchen? Ich kenne es gut."
+Akkusativ gegen Dativ entscheidet das Verb: "Ich sehe ihn." (sehen + Akk) | "Ich helfe ihm." (helfen + Dat). Falsch: "Ich sehe ihm.", "Er ruft mir an."
+Treffen zwei Pronomen aufeinander, steht der AKKUSATIV VOR dem Dativ: "Ich gebe es ihm." | Falsch: "Ich gebe ihm es." Vor einem Nomen steht das Pronomen zuerst: "Ich gebe es dem Mann."
+AUFGABENDESIGN: Der Satz muss beides liefern — das Bezugsnomen für Genus und Numerus, das Verb oder die Präposition für den Kasus. Alle Optionen sind nackte Pronomen derselben Person und unterscheiden sich NUR in Kasus oder Genus; das Verb bleibt in allen Optionen gleich, sonst verrät die Rektion die Lösung. Prüfe Akkusativ gegen Dativ nie an uns oder euch — dort sind beide Kasus gleich. Richtig: "Wo ist der Schlüssel? — Ich habe ___ verloren." mit den Optionen "ihn / ihm / sie / es".`,
+
+  'Pronomen in Dativ': `Personalpronomen im Dativ: ich→mir, du→dir, er→ihm, sie→ihr, es→ihm, wir→uns, ihr→euch, sie→ihnen, Sie→Ihnen (Höflichkeitsform, immer groß).
+Dativ steht nach Dativverben ohne Akkusativobjekt (helfen, danken, gefallen, gehören, schmecken, passen, antworten, glauben, folgen, gratulieren, zuhören, vertrauen, begegnen, fehlen, wehtun) und nach den Dativpräpositionen mit, nach, bei, seit, von, zu, aus, gegenüber, ab: "mit mir", "bei ihr", "zu ihnen".
+Als indirektes Objekt neben einem Akkusativobjekt: geben, schicken, zeigen, erklären, bringen, kaufen, schenken, sagen, empfehlen, leihen — "Ich schenke ihr das Buch." (ihr = wem?, das Buch = was?).
+Richtig: "Das Kleid gefällt mir." | "Der Wagen gehört ihm." | "Kann ich Ihnen helfen?" Falsch: "Ich helfe ihn.", "Das gefällt mich.", "Ich danke dich."
+FALLE: "ihr" ist dreideutig — Dativ von "sie" ("Ich helfe ihr."), Nominativ Plural ("Ihr kommt zu spät.") und Possessivartikel ("ihr Buch"). "ihnen" klein = Dativ Plural, "Ihnen" groß = Höflichkeitsform. Der Dativ von "es" lautet "ihm", nicht "es".
+Treffen zwei Pronomen aufeinander, steht der AKKUSATIV VOR dem Dativ: "Ich gebe es ihm." | Falsch: "Ich gebe ihm es."
+AUFGABENDESIGN: Das Verb oder die Präposition muss den Dativ erzwingen, das Bezugsnomen liefert Genus und Numerus. Alle Optionen sind nackte Pronomen derselben Person und unterscheiden sich NUR in Kasus oder Genus; das Verb bleibt in allen Optionen gleich. Prüfe den Kasus nie an uns oder euch — Akkusativ und Dativ sind dort gleich. Richtig: "Die neue Jacke gefällt ___ sehr." mit den Optionen "ihr / sie / ihn / ihm".`,
+
   'Nominativ': `Subjekt im Nominativ. Prädikativ nach sein/werden/bleiben ebenfalls Nominativ. Richtig: "Der Mann ist ein guter Lehrer." | Falsch: "Der Mann ist einen guten Lehrer."`,
 };
 
